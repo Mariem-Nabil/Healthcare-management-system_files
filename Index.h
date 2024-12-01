@@ -30,16 +30,20 @@ public:
 class primary_doc_id {
 public:
     char id[15];
-    int statusflag;
-    short offset;
+    int offset; //refrence field
+  static int lastAddress ;
 
-    void writerecord(char id[15]) {
-        fstream prim_id_doc("primary_id_doc.txt", ios::app);
-        prim_id_doc << id << " " << "\n";
+    void writerecord(char id[15],int size) {
+        offset=size;
+        prim_id_doc << id << " " <<lastAddress<< "\n";
+        update_lastAddress(size);
+    }
+    static void update_lastAddress(int value){
+        lastAddress+=value;
     }
 
 };
-
+int primary_doc_id::lastAddress= sizeof(short);//size of header
 class primary_id_app {
     char id[15];
     int statusflag;

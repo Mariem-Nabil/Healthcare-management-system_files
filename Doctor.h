@@ -5,8 +5,9 @@
 #include <bits/stdc++.h>
 #include <fstream>
 #include "Index.h"
-
+#include "AvailableList.h"
 using namespace std;
+fstream doctorstream("doctor.txt",ios::app | ios::binary);
 
 class Doctor {
 public:
@@ -14,9 +15,27 @@ public:
     char name[30]; // secondary
     char address[30];
     int recordsize;
+    AvailableList Avail;
     Doctor(){}
-    void add() {
+    string returnlenghtindecator() {
+        recordsize = strlen(name) + strlen(id) + strlen(address) + 4;
+        string length = to_string(recordsize);
+        if (recordsize < 10)length = "0" + to_string(recordsize);
 
+        return length;
+    }
+
+
+    void add() {
+        // add in data file
+        string strlen = returnlenghtindecator();
+        doctorstream << strlen << name << "|" << id << "|" << address;
+        //add in index files
+        secondary_name_doc secondaryNameDoc;
+        secondaryNameDoc.write_sec_name(id,name);
+        //exist error
+        primary_doc_id primaryDocId;
+        primaryDocId.writerecord(id,recordsize);
     }
 
     void Delete() {
@@ -39,20 +58,8 @@ public:
 
     }
 
-    void writerecord(fstream &docstream) {
 
-        string strlen = returnlenghtindecator();
-        docstream << strlen << name << "|" << id << "|" << address;
-        secondary_name_doc::write_sec_name(id,name);
-    }
 
-    string returnlenghtindecator() {
-        recordsize = strlen(name) + strlen(id) + strlen(address) + 4;
-        string length = to_string(recordsize);
-        if (recordsize < 10)length = "0" + to_string(recordsize);
-
-        return length;
-    }
 };
 
 

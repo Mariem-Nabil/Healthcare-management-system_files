@@ -7,6 +7,7 @@
 #include <fstream>
 
 using namespace std;
+fstream appionmentstream("appointments.txt",ios::app);
 
 class Appointments {
 public:
@@ -15,8 +16,20 @@ public:
     char date[30];
     int recordsize;
     Appointments(){}
-    void add() {
+    string returnlenghtindecator() {
+        recordsize = strlen(doctorID) + strlen(id) + strlen(date) + 4;
+        string length = to_string(recordsize);
+        if (recordsize < 10)length = "0" + to_string(recordsize);
 
+        return length;
+    }
+    void add() {
+        // add in data file
+        string strlen = returnlenghtindecator();
+        appionmentstream << strlen << id << "|" << doctorID << "|" << date;
+        //add in index files
+        secondary_doctorid_app secondaryDoctoridApp;
+        secondaryDoctoridApp.write_sec_iddoc( id,doctorID);
     }
 
     void Delete() {
@@ -35,18 +48,8 @@ public:
 
     }
 
-    void writerecord(fstream &appstream) {
-        string strlen = returnlenghtindecator();
-        appstream << strlen << id << "|" << doctorID << "|" << date;
-    }
 
-    string returnlenghtindecator() {
-        recordsize = strlen(doctorID) + strlen(id) + strlen(date) + 4;
-        string length = to_string(recordsize);
-        if (recordsize < 10)length = "0" + to_string(recordsize);
 
-        return length;
-    }
 };
 
 
