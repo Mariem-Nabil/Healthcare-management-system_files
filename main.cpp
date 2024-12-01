@@ -10,10 +10,12 @@ using namespace std;
 #define iose ios::sync_with_stdio(false),cin.tie(nullptr),cout.tie(nullptr)
 
 
-int main() {
-    iose;
+int main() { iose;
+ 
+    fstream doctorstream("doctor.txt",ios::app | ios::binary);
+      Doctor d ;
 
-    Doctor d;
+    fstream appionmentstream("appointments.txt",ios::app);
     Appointments app;
 
     int choice;

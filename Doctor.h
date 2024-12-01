@@ -18,7 +18,7 @@ public:
     AvailableList Avail;
     Doctor(){}
     string returnlenghtindecator() {
-        recordsize = strlen(name) + strlen(id) + strlen(address) + 4;
+        recordsize = strlen(name) + strlen(id) + strlen(address) + 3;
         string length = to_string(recordsize);
         if (recordsize < 10)length = "0" + to_string(recordsize);
 
@@ -29,7 +29,7 @@ public:
     void add() {
         // add in data file
         string strlen = returnlenghtindecator();
-        doctorstream << strlen << name << "|" << id << "|" << address;
+        doctorstream << strlen << name << "|" << id << "|" << address<<"|";
         //add in index files
         secondary_name_doc secondaryNameDoc;
         secondaryNameDoc.write_sec_name(id,name);

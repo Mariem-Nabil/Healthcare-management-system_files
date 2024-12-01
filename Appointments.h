@@ -17,7 +17,7 @@ public:
     int recordsize;
     Appointments(){}
     string returnlenghtindecator() {
-        recordsize = strlen(doctorID) + strlen(id) + strlen(date) + 4;
+        recordsize = strlen(doctorID) + strlen(id) + strlen(date) + 3;
         string length = to_string(recordsize);
         if (recordsize < 10)length = "0" + to_string(recordsize);
 
@@ -26,7 +26,7 @@ public:
     void add() {
         // add in data file
         string strlen = returnlenghtindecator();
-        appionmentstream << strlen << id << "|" << doctorID << "|" << date;
+        appionmentstream << strlen << id << "|" << doctorID << "|" << date<<"|";
         //add in index files
         secondary_doctorid_app secondaryDoctoridApp;
         secondaryDoctoridApp.write_sec_iddoc( id,doctorID);
