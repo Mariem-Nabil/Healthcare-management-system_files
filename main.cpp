@@ -21,29 +21,28 @@ struct Appointment {
 // Define index structures
 struct PrimaryIndex {
     char ID[15];
-    int position;
+    int offset; // Offset in the data file
     bool operator<(const PrimaryIndex &r) const {
         return strcmp(ID, r.ID) < 0;
     }
 };
 
-struct SecondaryIndexID {
-    char ID[15];
-    vector<Appointment> appointments;
-    bool operator<(const SecondaryIndexID &r) const { // for the sort function
-        return strcmp(ID, r.ID) < 0;
-
-    }
-};
-
 struct SecondaryIndexName {
-    char Name[30];
-    vector <string> IDs;
-    bool operator<(const SecondaryIndexName &r) const { // for the sort function
+    char Name[30] = " ";
+    vector<string> IDs; // Offsets in the data file
+    bool operator<(const SecondaryIndexName &r) const {
         return strcmp(Name, r.Name) < 0;
-
     }
 };
+
+struct SecondaryIndexID {
+    char ID[15] = " ";
+    vector<string> appointmentsIDs; // Appointment offsets
+    bool operator<(const SecondaryIndexID &r) const {
+        return strcmp(ID, r.ID) < 0;
+    }
+};
+
 
 // Globals
 vector<Doctor> doctors;
@@ -73,19 +72,19 @@ int findAppointmentIndex(const char* appointmentID);
 void displayMenu();
 void processQuery();
 void buildIndexes();
-void saveIndexes();
+//void saveIndexes();
 void loadIndexes();
+void ReadPrimIndex(PrimaryIndex PrmIndxArray[], int numRec, fstream &inFile);
+void ReadScndIndex(SecondaryIndexName ScndIndxArray[], int numRec, fstream &inFile);
 void insertPrimaryIndex(vector<PrimaryIndex>& index, const char* key, int position);
 int binarySearchPrimaryIndex(const vector<PrimaryIndex>& index, const char* key);
-void insertSecondaryIndexIDDoc(vector<SecondaryIndexID>& index, const char* key, int position);
-void insertSecondaryIndexName(vector<SecondaryIndexName>& index, const char* key, int position);
-vector<int> searchSecondaryIndex(const vector<SecondaryIndexID>& index, const char* key);
+//vector<int> searchSecondaryIndex(const vector<SecondaryIndexID>& index, const char* key);
 
 int main() {
     loadDoctors();
     loadAppointments();
-//    loadIndexes();
-    buildIndexes();
+    loadIndexes();
+//    buildIndexes();
     int choice;
 
     do {
@@ -96,12 +95,12 @@ int main() {
             case 1: addDoctor(); break;
             case 2: addAppointment(); break;
             case 3: updateDoctorName(); break;
-            case 4: updateAppointmentDate(); break;
-            case 5: deleteAppointment(); break;
+//            case 4: updateAppointmentDate(); break;
+//            case 5: deleteAppointment(); break;
             case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
-            case 8: printAppointmentInfo(); break;
-            case 9: processQuery(); break;
+//            case 8: printAppointmentInfo(); break;
+//            case 9: processQuery(); break;
             case 10: break; // Exit
             default: cout << "Invalid choice. Please try again." << "\n";
         }
@@ -157,6 +156,78 @@ void loadAppointments() {
     file.close();
 }
 
+void loadIndexes() {
+    // Open Primary Index File for Doctors
+    fstream doctorPrimaryIndexFile("doctor_primary_index.txt", ios::in | ios::binary);
+    if (doctorPrimaryIndexFile) {
+        int numRecords;
+        doctorPrimaryIndexFile.read((char*)&numRecords, sizeof(numRecords)); // Read number of records
+        doctorPrimaryIndex.resize(numRecords);                               // Resize the vector
+        ReadPrimIndex(doctorPrimaryIndex.data(), numRecords, doctorPrimaryIndexFile);
+        doctorPrimaryIndexFile.close();
+    }
+
+    // Open Primary Index File for Appointments
+    fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::in | ios::binary);
+    if (appointmentPrimaryIndexFile) {
+        int numRecords;
+        appointmentPrimaryIndexFile.read((char*)&numRecords, sizeof(numRecords)); // Read number of records
+        appointmentPrimaryIndex.resize(numRecords);                               // Resize the vector
+        ReadPrimIndex(appointmentPrimaryIndex.data(), numRecords, appointmentPrimaryIndexFile);
+        appointmentPrimaryIndexFile.close();
+    }
+
+    // Open Secondary Index File for Doctor Names
+    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in | ios::binary);
+    if (doctorNameSecondaryIndexFile) {
+        int numRecords;
+        doctorNameSecondaryIndexFile.read((char*)&numRecords, sizeof(numRecords)); // Read number of records
+        doctorNameSecondaryIndex.resize(numRecords);                               // Resize the vector
+        ReadScndIndex(doctorNameSecondaryIndex.data(), numRecords, doctorNameSecondaryIndexFile);
+        doctorNameSecondaryIndexFile.close();
+    }
+
+    // Open Secondary Index File for Doctor IDs and Appointments
+    fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::in | ios::binary);
+    if (doctorIDSecondaryIndexFile) {
+        int numRecords;
+        doctorIDSecondaryIndexFile.read((char*)&numRecords, sizeof(numRecords)); // Read number of records
+        doctorIDSecondaryIndexForAppointments.resize(numRecords);                // Resize the vector
+        ReadScndIndex((SecondaryIndexName*)doctorIDSecondaryIndexForAppointments.data(), numRecords, doctorIDSecondaryIndexFile);
+        doctorIDSecondaryIndexFile.close();
+    }
+
+    cout << "All indexes loaded successfully." << endl;
+}
+
+void ReadPrimIndex(PrimaryIndex PrmIndxArray[], int numRec, fstream &inFile) {
+    for (int i = 0; i < numRec; i++) {
+        inFile.read((char*)&PrmIndxArray[i], sizeof(PrmIndxArray[i]));
+    }
+}
+
+void ReadScndIndex(SecondaryIndexName ScndIndxArray[], int numRec, fstream &inFile) {
+    for (int i = 0; i < numRec; i++) {
+        inFile.read((char*)&ScndIndxArray[i], sizeof(ScndIndxArray[i]));
+    }
+}
+
+
+
+void WritePrimIndex(PrimaryIndex PrmIndxArray[], int numRec, fstream &outfile) {
+    for (int i = 0; i < numRec; i++) {
+        outfile.write((char*)&PrmIndxArray[i], sizeof(PrmIndxArray[i]));
+    }
+}
+
+void WriteScndIndex(SecondaryIndexName ScndIndxArray[], int numRec, fstream &outfile) {
+    for (int i = 0; i < numRec; i++) {
+        outfile.write((char*)&ScndIndxArray[i], sizeof(ScndIndxArray[i]));
+    }
+}
+
+
+
 // Save doctors to file
 void saveDoctors() {
     ofstream file("doctors.txt");
@@ -180,18 +251,19 @@ void saveAppointments() {
 }
 
 // Find doctor index using primary index
-int findDoctorIndex(const char* doctorID) {
+int findDoctorOffset(const char* doctorID) {
     int index = binarySearchPrimaryIndex(doctorPrimaryIndex, doctorID);
-    return (index == -1) ? -1 : doctorPrimaryIndex[index].position;
+    return (index == -1) ? -1 : doctorPrimaryIndex[index].offset;
 }
 
 // Find appointment index using primary index
-int findAppointmentIndex(const char* appointmentID) {
+int findAppointmentOffset(const char* appointmentID) {
     int index = binarySearchPrimaryIndex(appointmentPrimaryIndex, appointmentID);
-    return (index == -1) ? -1 : appointmentPrimaryIndex[index].position;
+    return (index == -1) ? -1 : appointmentPrimaryIndex[index].offset;
 }
 
-void insertPrimaryIndex(vector<PrimaryIndex>& primaryIndex, const char* key, int position) {
+void insertPrimaryIndex(vector<PrimaryIndex>& primaryIndex, const char* key, int offset) {
+    // Check if the primary key already exists using binary search
     int idx = binarySearchPrimaryIndex(primaryIndex, key);
 
     if (idx != -1) {
@@ -202,19 +274,82 @@ void insertPrimaryIndex(vector<PrimaryIndex>& primaryIndex, const char* key, int
     // Create a new PrimaryIndex entry
     PrimaryIndex newEntry;
     strcpy(newEntry.ID, key);
-    newEntry.position = position;
+    newEntry.offset = offset; // Use the offset instead of position in vector
 
-    // Insert the new entry
-    primaryIndex.push_back(newEntry);
+    // Find the correct position to insert while maintaining sorted order
+    auto it = lower_bound(primaryIndex.begin(), primaryIndex.end(), newEntry,
+                          [](const PrimaryIndex& a, const PrimaryIndex& b) {
+                              return strcmp(a.ID, b.ID) < 0;
+                          });
 
-    // Sort the primary index to maintain order by ID
-    sort(primaryIndex.begin(), primaryIndex.end());
+    // Insert the new entry at the appropriate position
+    primaryIndex.insert(it, newEntry);
 
-    cout << "Primary index updated successfully." << endl;
+    cout << "Primary index updated successfully with offset: " << offset << endl;
 }
 
 
 // Add new doctor
+//void addDoctor() {
+//    if (doctors.size() >= MAX_DOCTORS) {
+//        cout << "Cannot add more doctors. Maximum limit reached." << endl;
+//        return;
+//    }
+//
+//    Doctor newDoctor;
+//    cout << "Enter Doctor ID: ";
+//    cin >> newDoctor.doctorID;
+//    if (findDoctorIndex(newDoctor.doctorID) != -1) {
+//        cout << "Doctor ID already exists." << endl;
+//        return;
+//    }
+//    cout << "Enter Doctor Name: ";
+//    cin.ignore();
+//    cin.getline(newDoctor.doctorName, 30);
+//    cout << "Enter Address: ";
+//    cin.getline(newDoctor.address, 30);
+//
+//    int position;
+//    if (!doctorAvailList.empty()) {
+//        position = doctorAvailList.back();
+//        doctorAvailList.pop_back();
+//        doctors[position] = newDoctor;
+//    } else {
+//        position = doctors.size();
+//        doctors.push_back(newDoctor);
+//    }
+//
+//    // Update indexes
+//    insertPrimaryIndex(doctorPrimaryIndex, newDoctor.doctorID, position);
+//    // replace with search with secondary index method
+//    auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
+//                      [&](const SecondaryIndexName &index) {
+//                          return strcmp(index.Name, newDoctor.doctorName) == 0;
+//                      });
+//    if (it != doctorNameSecondaryIndex.end()) {
+//        // If the name already exists, add the new doctor ID to the list
+//        it->IDs.emplace_back(newDoctor.doctorID);
+//    } else {
+//        // Otherwise, create a new entry
+//        SecondaryIndexName newNameEntry;
+//        strcpy(newNameEntry.Name, newDoctor.doctorName);
+//        newNameEntry.IDs.emplace_back(newDoctor.doctorID);
+//        doctorNameSecondaryIndex.push_back(newNameEntry);
+//    }
+//    sort(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end());
+//
+//    // Update Secondary Index for Doctor IDs and Appointments
+//
+//    SecondaryIndexID newIDEntry;
+//    strcpy(newIDEntry.ID, newDoctor.doctorID);
+//    doctorIDSecondaryIndexForAppointments.push_back(newIDEntry);
+//
+//    sort(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end());
+//
+//
+//    cout << "Doctor added successfully." << endl;
+//}
+
 void addDoctor() {
     if (doctors.size() >= MAX_DOCTORS) {
         cout << "Cannot add more doctors. Maximum limit reached." << endl;
@@ -224,7 +359,7 @@ void addDoctor() {
     Doctor newDoctor;
     cout << "Enter Doctor ID: ";
     cin >> newDoctor.doctorID;
-    if (findDoctorIndex(newDoctor.doctorID) != -1) {
+    if (findDoctorOffset(newDoctor.doctorID) != -1) {
         cout << "Doctor ID already exists." << endl;
         return;
     }
@@ -234,46 +369,35 @@ void addDoctor() {
     cout << "Enter Address: ";
     cin.getline(newDoctor.address, 30);
 
-    int position;
-    if (!doctorAvailList.empty()) {
-        position = doctorAvailList.back();
-        doctorAvailList.pop_back();
-        doctors[position] = newDoctor;
-    } else {
-        position = doctors.size();
-        doctors.push_back(newDoctor);
-    }
+    // Write doctor to file and get the offset
+    fstream outfile("doctors.txt", ios::out | ios::app | ios::binary);
+    int offset = outfile.tellp();
+    outfile.write((char*)&newDoctor, sizeof(newDoctor));
+    outfile.close();
 
-    // Update indexes
-    insertPrimaryIndex(doctorPrimaryIndex, newDoctor.doctorID, position);
-    // replace with search with secondary index method
+    // Update Primary Index
+    insertPrimaryIndex(doctorPrimaryIndex, newDoctor.doctorID, offset);
+
+    // Update Secondary Index
+    SecondaryIndexName secIndex;
+    strcpy(secIndex.Name, newDoctor.doctorName);
+    secIndex.IDs.push_back(newDoctor.doctorID);
+
     auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
-                      [&](const SecondaryIndexName &index) {
-                          return strcmp(index.Name, newDoctor.doctorName) == 0;
+                      [&](const SecondaryIndexName& entry) {
+                          return strcmp(entry.Name, secIndex.Name) == 0;
                       });
-    if (it != doctorNameSecondaryIndex.end()) {
-        // If the name already exists, add the new doctor ID to the list
-        it->IDs.emplace_back(newDoctor.doctorID);
+
+    if (it != doctorNameSecondaryIndex.end()) { // if name already exists
+        it->IDs.push_back(newDoctor.doctorID);
     } else {
-        // Otherwise, create a new entry
-        SecondaryIndexName newNameEntry;
-        strcpy(newNameEntry.Name, newDoctor.doctorName);
-        newNameEntry.IDs.emplace_back(newDoctor.doctorID);
-        doctorNameSecondaryIndex.push_back(newNameEntry);
+        doctorNameSecondaryIndex.push_back(secIndex);
+        sort(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end());
     }
-    sort(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end());
-
-    // Update Secondary Index for Doctor IDs and Appointments
-
-    SecondaryIndexID newIDEntry;
-    strcpy(newIDEntry.ID, newDoctor.doctorID);
-    doctorIDSecondaryIndexForAppointments.push_back(newIDEntry);
-
-    sort(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end());
-
 
     cout << "Doctor added successfully." << endl;
 }
+
 
 
 // Add new appointment
@@ -319,7 +443,7 @@ void addAppointment() {
                           return strcmp(index.ID, newAppointment.doctorID) == 0;
                       });
 
-    it->appointments.push_back(newAppointment);
+    it->appointmentsIDs.emplace_back(newAppointment.appointmentID);
 
     // Sort the Secondary Index
     sort(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end());
@@ -370,12 +494,12 @@ void updateDoctorName() {
 
     if (newIt != doctorNameSecondaryIndex.end()) {
         // If the new name already exists, add the doctor ID to its list
-        newIt->IDs.push_back(doctorID);
+        newIt->IDs.emplace_back(doctorID);
     } else {
         // Otherwise, create a new entry for the new name
         SecondaryIndexName newEntry;
         strcpy(newEntry.Name, doctors[index].doctorName);
-        newEntry.IDs.push_back(doctorID);
+        newEntry.IDs.emplace_back(doctorID);
         doctorNameSecondaryIndex.push_back(newEntry);
     }
 
@@ -425,4 +549,27 @@ int binarySearchPrimaryIndex(const vector<PrimaryIndex>& primaryIndex, const cha
 
     // Key not found
     return -1;
+}
+
+void printDoctorInfo() {
+    char id[15];
+    cout << "Enter the doctor's ID: ";
+    cin >> id;
+    int idx = binarySearchPrimaryIndex(doctorPrimaryIndex, id);
+    if (idx != -1) {
+        int offset = doctorPrimaryIndex[idx].offset;
+
+        // Read the doctor's record from the file
+        fstream infile("doctors.txt", ios::in | ios::binary);
+        infile.seekg(offset, ios::beg);
+        Doctor doc;
+        infile.read((char*)&doc, sizeof(doc));
+        infile.close();
+
+        cout << "Doctor's ID: " << doc.doctorID << "\n";
+        cout << "Doctor's Name: " << doc.doctorName << "\n";
+        cout << "Doctor's Address: " << doc.address << "\n";
+    } else {
+        cout << "No doctor exists with this ID." << endl;
+    }
 }
