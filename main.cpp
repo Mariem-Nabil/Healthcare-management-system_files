@@ -5,6 +5,8 @@ const int MAX_DOCTORS = 5;
 const int MAX_APPOINTMENTS = 10;
 const char DELIMITER = '|';
 
+
+
 // Define structures
 struct Doctor {
     char doctorID[15];
@@ -67,16 +69,16 @@ void loadDoctors();
 void loadAppointments();
 void saveDoctors();
 void saveAppointments();
-int findDoctorIndex(const char* doctorID);
-int findAppointmentIndex(const char* appointmentID);
+int findDoctorOffset(const char* doctorID);
+int findAppointmentOffset(const char* appointmentID);
 void displayMenu();
 void processQuery();
 void buildIndexes();
-//void saveIndexes();
+void saveIndexes();
 void loadIndexes();
 void ReadPrimIndex(PrimaryIndex PrmIndxArray[], int numRec, fstream &inFile);
 void ReadScndIndex(SecondaryIndexName ScndIndxArray[], int numRec, fstream &inFile);
-void insertPrimaryIndex(vector<PrimaryIndex>& index, const char* key, int position);
+//void insertPrimaryIndex(vector<PrimaryIndex>& index, const char* key, int position);
 int binarySearchPrimaryIndex(const vector<PrimaryIndex>& index, const char* key);
 //vector<int> searchSecondaryIndex(const vector<SecondaryIndexID>& index, const char* key);
 
@@ -97,7 +99,7 @@ int main() {
             case 3: updateDoctorName(); break;
 //            case 4: updateAppointmentDate(); break;
 //            case 5: deleteAppointment(); break;
-            case 6: deleteDoctor(); break;
+//            case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
 //            case 8: printAppointmentInfo(); break;
 //            case 9: processQuery(); break;
@@ -106,8 +108,8 @@ int main() {
         }
     } while (choice != 10);
 
-    saveDoctors();
-    saveAppointments();
+//    saveDoctors();
+//    saveAppointments();
 //    saveIndexes();
     return 0;
 }
@@ -134,10 +136,17 @@ void loadDoctors() {
     if (!file) return;
 
     Doctor doc;
-    while (file.getline(doc.doctorID, 15, DELIMITER) &&
+    PrimaryIndex p;
+    p.offset = 0;
+    string length;
+    while (getline(file, length, DELIMITER) &&
+           file.getline(doc.doctorID, 15, DELIMITER) &&
            file.getline(doc.doctorName, 30, DELIMITER) &&
-           file.getline(doc.address, 30)) {
+           file.getline(doc.address, 30, DELIMITER)) {
         doctors.push_back(doc);
+        strcpy(p.ID, doc.doctorID);
+        doctorPrimaryIndex.push_back(p);
+        p.offset = file.tellg();
     }
     file.close();
 }
@@ -200,9 +209,35 @@ void loadIndexes() {
     cout << "All indexes loaded successfully." << endl;
 }
 
-void ReadPrimIndex(PrimaryIndex PrmIndxArray[], int numRec, fstream &inFile) {
+//
+//void readPrimaryIndex(vector<PIndex>& index, const string& fileName) {
+//    fstream file(fileName, ios::in | ios::binary);
+//    if (!file) return;
+//    int size;
+//    file.read((char*)&size, sizeof(size));
+//    index.resize(size);
+//    for (int i = 0; i < size; ++i) {
+//        file.read((char*)&index[i], sizeof(index[i]));
+//    }
+//    file.close();
+//}
+//
+//// Function to read secondary index from a file
+//void readSecondaryIndex(vector<SIndex>& index, const string& fileName) {
+//    fstream file(fileName, ios::in | ios::binary);
+//    if (!file) return;
+//    int size;
+//    file.read((char*)&size, sizeof(size));
+//    index.resize(size);
+//    for (int i = 0; i < size; ++i) {
+//        file.read((char*)&index[i], sizeof(index[i]));
+//    }
+//    file.close();
+//}
+
+void ReadPrimIndex(PrimaryIndex PrmIndexArray[], int numRec, fstream &inFile) {
     for (int i = 0; i < numRec; i++) {
-        inFile.read((char*)&PrmIndxArray[i], sizeof(PrmIndxArray[i]));
+        inFile.read((char*)&PrmIndexArray[i], sizeof(PrmIndexArray[i]));
     }
 }
 
@@ -289,66 +324,18 @@ void insertPrimaryIndex(vector<PrimaryIndex>& primaryIndex, const char* key, int
 }
 
 
-// Add new doctor
-//void addDoctor() {
-//    if (doctors.size() >= MAX_DOCTORS) {
-//        cout << "Cannot add more doctors. Maximum limit reached." << endl;
-//        return;
-//    }
-//
-//    Doctor newDoctor;
-//    cout << "Enter Doctor ID: ";
-//    cin >> newDoctor.doctorID;
-//    if (findDoctorIndex(newDoctor.doctorID) != -1) {
-//        cout << "Doctor ID already exists." << endl;
-//        return;
-//    }
-//    cout << "Enter Doctor Name: ";
-//    cin.ignore();
-//    cin.getline(newDoctor.doctorName, 30);
-//    cout << "Enter Address: ";
-//    cin.getline(newDoctor.address, 30);
-//
-//    int position;
-//    if (!doctorAvailList.empty()) {
-//        position = doctorAvailList.back();
-//        doctorAvailList.pop_back();
-//        doctors[position] = newDoctor;
-//    } else {
-//        position = doctors.size();
-//        doctors.push_back(newDoctor);
-//    }
-//
-//    // Update indexes
-//    insertPrimaryIndex(doctorPrimaryIndex, newDoctor.doctorID, position);
-//    // replace with search with secondary index method
-//    auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
-//                      [&](const SecondaryIndexName &index) {
-//                          return strcmp(index.Name, newDoctor.doctorName) == 0;
-//                      });
-//    if (it != doctorNameSecondaryIndex.end()) {
-//        // If the name already exists, add the new doctor ID to the list
-//        it->IDs.emplace_back(newDoctor.doctorID);
-//    } else {
-//        // Otherwise, create a new entry
-//        SecondaryIndexName newNameEntry;
-//        strcpy(newNameEntry.Name, newDoctor.doctorName);
-//        newNameEntry.IDs.emplace_back(newDoctor.doctorID);
-//        doctorNameSecondaryIndex.push_back(newNameEntry);
-//    }
-//    sort(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end());
-//
-//    // Update Secondary Index for Doctor IDs and Appointments
-//
-//    SecondaryIndexID newIDEntry;
-//    strcpy(newIDEntry.ID, newDoctor.doctorID);
-//    doctorIDSecondaryIndexForAppointments.push_back(newIDEntry);
-//
-//    sort(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end());
-//
-//
-//    cout << "Doctor added successfully." << endl;
-//}
+void writeDoctorRecord(fstream& file, const Doctor& doctor) {
+    // Construct a delimited record
+    string record = string(doctor.doctorID) + "|" + string(doctor.doctorName) + "|" + string(doctor.address) + "|";
+
+    // Write the length of the record as the length indicator
+    int recordLength = record.size();
+    file << (to_string(recordLength)) << "|";
+
+    // Write the actual record
+    file.write(record.c_str(), recordLength);
+}
+
 
 void addDoctor() {
     if (doctors.size() >= MAX_DOCTORS) {
@@ -370,9 +357,12 @@ void addDoctor() {
     cin.getline(newDoctor.address, 30);
 
     // Write doctor to file and get the offset
-    fstream outfile("doctors.txt", ios::out | ios::app | ios::binary);
+    // to be updated in case of avail list
+    fstream outfile("doctors.txt", ios::out | ios::app);
+    outfile.seekp(0, ios::end);  // Move the file pointer to the end of the file
     int offset = outfile.tellp();
-    outfile.write((char*)&newDoctor, sizeof(newDoctor));
+    cout << "off" << offset << "\n";
+    writeDoctorRecord(outfile, newDoctor);
     outfile.close();
 
     // Update Primary Index
@@ -399,6 +389,17 @@ void addDoctor() {
 }
 
 
+void writeAppointmentRecord(fstream& file, const Appointment& appointment) {
+    // Construct a delimited record
+    string record = string(appointment.appointmentID) + "|" + string(appointment.doctorID)+ "|" + string(appointment.appointmentDate) + "|";
+
+    // Write the length of the record as the length indicator
+    int recordLength = record.size();
+    file << (to_string(recordLength)) << "|";
+
+    // Write the actual record
+    file.write(record.c_str(), recordLength);
+}
 
 // Add new appointment
 void addAppointment() {
@@ -410,7 +411,7 @@ void addAppointment() {
     Appointment newAppointment;
     cout << "Enter Appointment ID: ";
     cin >> newAppointment.appointmentID;
-    if (findAppointmentIndex(newAppointment.appointmentID) != -1) {
+    if (findAppointmentOffset(newAppointment.appointmentID) != -1) {
         cout << "Appointment ID already exists." << "\n";
         return;
     }
@@ -419,7 +420,7 @@ void addAppointment() {
     cin.getline(newAppointment.appointmentDate, 30);
     cout << "Enter Doctor ID: ";
     cin >> newAppointment.doctorID;
-    if (findDoctorIndex(newAppointment.doctorID) == -1) {
+    if (findDoctorOffset(newAppointment.doctorID) == -1) {
         cout << "Doctor ID does not exist." << "\n";
         return;
     }
@@ -432,6 +433,9 @@ void addAppointment() {
     } else {
         position = appointments.size();
         appointments.push_back(newAppointment);
+        fstream file("appointments.txt", ios::out | ios::app | ios::binary);
+        writeAppointmentRecord(file, newAppointment);
+        file.close();
     }
 
     // Update Primary Index for Appointments
@@ -456,7 +460,7 @@ void updateDoctorName() {
     char doctorID[15];
     cout << "Enter Doctor ID to update: ";
     cin >> doctorID;
-    int index = findDoctorIndex(doctorID);
+    int index = findDoctorOffset(doctorID);
     if (index == -1) {
         cout << "Doctor ID not found." << "\n";
         return;
@@ -510,20 +514,20 @@ void updateDoctorName() {
 }
 
 // Delete doctor
-void deleteDoctor() {
-    char doctorID[15];
-    cout << "Enter Doctor ID to delete: ";
-    cin >> doctorID;
-    int index = findDoctorIndex(doctorID);
-    if (index == -1) {
-        cout << "Doctor ID not found." << "\n";
-        return;
-    }
-
-    doctors[index].doctorID[0] = '*'; // Mark as deleted
-    doctorAvailList.push_back(index);
-    cout << "Doctor marked as deleted." << "\n";
-}
+//void deleteDoctor() {
+//    char doctorID[15];
+//    cout << "Enter Doctor ID to delete: ";
+//    cin >> doctorID;
+//    int index = findDoctorIndex(doctorID);
+//    if (index == -1) {
+//        cout << "Doctor ID not found." << "\n";
+//        return;
+//    }
+//
+//    doctors[index].doctorID[0] = '*'; // Mark as deleted
+//    doctorAvailList.push_back(index);
+//    cout << "Doctor marked as deleted." << "\n";
+//}
 
 int binarySearchPrimaryIndex(const vector<PrimaryIndex>& primaryIndex, const char* key) {
     int low = 0;
@@ -555,20 +559,31 @@ void printDoctorInfo() {
     char id[15];
     cout << "Enter the doctor's ID: ";
     cin >> id;
+    cin.ignore();
     int idx = binarySearchPrimaryIndex(doctorPrimaryIndex, id);
     if (idx != -1) {
         int offset = doctorPrimaryIndex[idx].offset;
-
+//        cout << offset << "\n";
         // Read the doctor's record from the file
-        fstream infile("doctors.txt", ios::in | ios::binary);
+        ifstream infile("doctors.txt");
         infile.seekg(offset, ios::beg);
-        Doctor doc;
-        infile.read((char*)&doc, sizeof(doc));
+
+
+        string length, doctorID, doctorName, doctorAddress;
+        getline(infile, length, DELIMITER);
+        getline(infile, doctorID, DELIMITER);
+        getline(infile, doctorName, DELIMITER);
+        getline(infile, doctorAddress, DELIMITER);
+
+
         infile.close();
 
-        cout << "Doctor's ID: " << doc.doctorID << "\n";
-        cout << "Doctor's Name: " << doc.doctorName << "\n";
-        cout << "Doctor's Address: " << doc.address << "\n";
+
+
+        // Display the doctor's information
+        cout << "Doctor's ID: " << doctorID << "\n";
+        cout << "Doctor's Name: " << doctorName << "\n";
+        cout << "Doctor's Address: " << doctorAddress << "\n";
     } else {
         cout << "No doctor exists with this ID." << endl;
     }
