@@ -1,23 +1,24 @@
 #include <bits/stdc++.h>
+#include <fstream>
 using namespace std;
 
 const int MAX_DOCTORS = 5;
 const int MAX_APPOINTMENTS = 10;
 const char DELIMITER = '|';
 
-
-
 // Define structures
 struct Doctor {
     char doctorID[15];
     char doctorName[30];
     char address[30];
+    short header;
 };
 
 struct Appointment {
     char appointmentID[15];
     char appointmentDate[30];
     char doctorID[15];
+    short header;
 };
 
 // Define index structures
@@ -53,7 +54,7 @@ vector<PrimaryIndex> doctorPrimaryIndex;
 vector<PrimaryIndex> appointmentPrimaryIndex;
 vector<SecondaryIndexName> doctorNameSecondaryIndex;
 vector<SecondaryIndexID> doctorIDSecondaryIndexForAppointments;
-vector<int> doctorAvailList;
+//vector<int> doctorAvailList;
 vector<int> appointmentAvailList;
 
 // Function declarations
@@ -132,12 +133,16 @@ void displayMenu() {
 
 // Load doctors from file
 void loadDoctors() {
-    ifstream file("doctors.txt");
+
+    fstream file("doctors.txt",ios::out| ios::in);
     if (!file) return;
 
     Doctor doc;
+    doc.header=-1;
+    file<<doc.header<<'|';
     PrimaryIndex p;
     p.offset = 0;
+
     string length;
     while (getline(file, length, DELIMITER) &&
            file.getline(doc.doctorID, 15, DELIMITER) &&
@@ -153,10 +158,12 @@ void loadDoctors() {
 
 // Load appointments from file
 void loadAppointments() {
-    ifstream file("appointments.txt");
+    fstream file("appointments.txt",ios::out| ios::in);
     if (!file) return;
 
     Appointment appt;
+    appt.header=-1;
+    file<<appt.header<<'|';
     while (file.getline(appt.appointmentID, 15, DELIMITER) &&
            file.getline(appt.appointmentDate, 30, DELIMITER) &&
            file.getline(appt.doctorID, 15)) {
