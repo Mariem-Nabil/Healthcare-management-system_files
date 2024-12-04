@@ -102,7 +102,7 @@ int main() {
 //            case 5: deleteAppointment(); break;
 //            case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
-//            case 8: printAppointmentInfo(); break;
+            case 8: printAppointmentInfo(); break;
 //            case 9: processQuery(); break;
             case 10: break; // Exit
             default: cout << "Invalid choice. Please try again." << "\n";
@@ -595,3 +595,38 @@ void printDoctorInfo() {
         cout << "No doctor exists with this ID." << endl;
     }
 }
+
+void printAppointmentInfo() {
+    char id[15];
+    cout << "Enter the Appointment's ID: ";
+    cin >> id;
+    cin.ignore();
+    int idx = binarySearchPrimaryIndex(appointmentPrimaryIndex, id);
+    if (idx != -1) {
+        int offset = appointmentPrimaryIndex[idx].offset;
+//        cout << offset << "\n";
+        // Read the appointment's record from the file
+        ifstream infile("appointments.txt");
+        infile.seekg(offset, ios::beg);
+
+
+        string length, appointmentID, appointmentData, doctorID;
+        getline(infile, length, DELIMITER);
+        getline(infile, appointmentID, DELIMITER);
+        getline(infile, appointmentData, DELIMITER);
+        getline(infile, doctorID, DELIMITER);
+
+
+        infile.close();
+
+
+
+        // Display the doctor's information
+        cout << "Appointment's ID: " << appointmentID << "\n";
+        cout << "Appointment's Date: " << appointmentData << "\n";
+        cout << "Doctor's ID: " << doctorID << "\n";
+    } else {
+        cout << "No appointment exists with this ID." << "\n";
+    }
+}
+
