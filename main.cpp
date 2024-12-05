@@ -134,42 +134,42 @@ void displayMenu() {
 // Load doctors from file
 void loadDoctors() {
 
-    fstream file("doctors.txt",ios::out| ios::in);
-    if (!file) return;
+    fstream doctorfile("doctors.txt",ios::out| ios::in);
+    if (!doctorfile) return;
 
     Doctor doc;
     doc.header=-1;
-    file<<doc.header<<'|';
+    doctorfile<<doc.header<<'|';
     PrimaryIndex p;
     p.offset = 0;
 
     string length;
-    while (getline(file, length, DELIMITER) &&
-           file.getline(doc.doctorID, 15, DELIMITER) &&
-           file.getline(doc.doctorName, 30, DELIMITER) &&
-           file.getline(doc.address, 30, DELIMITER)) {
+    while (getline(doctorfile, length, DELIMITER) &&
+            doctorfile.getline(doc.doctorID, 15, DELIMITER) &&
+            doctorfile.getline(doc.doctorName, 30, DELIMITER) &&
+            doctorfile.getline(doc.address, 30, DELIMITER)) {
         doctors.push_back(doc);
         strcpy(p.ID, doc.doctorID);
         doctorPrimaryIndex.push_back(p);
-        p.offset = file.tellg();
+        p.offset = doctorfile.tellg();
     }
-    file.close();
+//    doctorfile.close();
 }
 
 // Load appointments from file
 void loadAppointments() {
-    fstream file("appointments.txt",ios::out| ios::in);
-    if (!file) return;
+    fstream appiontmentfile("appointments.txt",ios::out| ios::in);
+    if (!appiontmentfile) return;
 
     Appointment appt;
     appt.header=-1;
-    file<<appt.header<<'|';
-    while (file.getline(appt.appointmentID, 15, DELIMITER) &&
-           file.getline(appt.appointmentDate, 30, DELIMITER) &&
-           file.getline(appt.doctorID, 15)) {
+    appiontmentfile<<appt.header<<'|';
+    while (appiontmentfile.getline(appt.appointmentID, 15, DELIMITER) &&
+            appiontmentfile.getline(appt.appointmentDate, 30, DELIMITER) &&
+            appiontmentfile.getline(appt.doctorID, 15)) {
         appointments.push_back(appt);
     }
-    file.close();
+//    appiontmentfile.close();
 }
 
 void loadIndexes() {
