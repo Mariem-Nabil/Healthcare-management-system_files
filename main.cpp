@@ -5,7 +5,7 @@ using namespace std;
 struct Node
 {
     short offset;
-    string size;
+    int size;
     Node *next;
 };
 
@@ -15,10 +15,11 @@ private:
 
 public:
     availlist() : head(NULL){}
-     bool is_empty(){
+    bool is_empty(){
         return head==NULL;
     }
-    void insertAtBeginning(short offset , string size) {
+
+    void insertAtBeginning(short offset , int size) {
         Node* newNode = new Node();
         newNode->offset = offset;
         newNode->size = size;
@@ -26,7 +27,7 @@ public:
         head = newNode;
     }
 
-    void insertAtEnd(short offset , string size) {
+    void insertAtEnd(short offset , int size) {
         Node* newNode = new Node();
         newNode->offset = offset;
         newNode->size = size;
@@ -90,6 +91,14 @@ public:
         temp->next = temp->next->next;
         // Delete the node
         delete nodeToDelete;
+    }
+
+    short getoffset(int size){
+        Node* temp = head;
+        while (temp) {
+            if (temp->size >= size)return temp->offset;
+            temp = temp->next;
+        }
     }
 
     void display() {
@@ -361,7 +370,7 @@ void  loadavaillist(){
     if (availfile.tellp() != 0){
         availfile.seekg(0,ios::beg);
         while (!availfile.eof()){
-            short off; string size;
+            short off; int size;
             availfile >> off >> size;
             list0.insertAtEnd(off,size);
         }
@@ -604,34 +613,41 @@ void addAppointment() {
                strlen(newAppointment.doctorID);
 
 
-    appointmentFile << convert(size);
-    appointmentFile.seekp(0, ios::end);
-    int offset = appointmentFile.tellp();
-    //search
-    sort(appointmentPrimaryIndex.begin(), appointmentPrimaryIndex.end(), comparePrimaryIndexByID);
-    //primary
-    fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::out | ios::app | ios::binary);
-    PrimaryIndex newIndex;
-    strcpy(newIndex.ID, newAppointment.appointmentID);
-    newIndex.offset = offset;
-    appointmentPrimaryIndex.push_back(newIndex);
-    appointmentPrimaryIndexFile<<newAppointment.appointmentID<<" "<<offset<<endl;
-    // Add to Secondary Index
-    auto it = find_if(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end(),
-                      [&](const SecondaryIndexID &s) { return strcmp(s.ID, newAppointment.doctorID) == 0; });
+    if (list0.is_empty()){
+        appointmentFile << convert(size);
+        appointmentFile.seekp(0, ios::end);
+        int offset = appointmentFile.tellp();
+        //search
+        sort(appointmentPrimaryIndex.begin(), appointmentPrimaryIndex.end(), comparePrimaryIndexByID);
+        //primary
+        fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::out | ios::app | ios::binary);
+        PrimaryIndex newIndex;
+        strcpy(newIndex.ID, newAppointment.appointmentID);
+        newIndex.offset = offset;
+        appointmentPrimaryIndex.push_back(newIndex);
+        appointmentPrimaryIndexFile<<newAppointment.appointmentID<<" "<<offset<<endl;
+        // Add to Secondary Index
+        auto it = find_if(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end(),
+                          [&](const SecondaryIndexID &s) { return strcmp(s.ID, newAppointment.doctorID) == 0; });
 
-    if (it != doctorIDSecondaryIndexForAppointments.end()) {
-        it->appointmentsIDs.push_back(newAppointment.appointmentID);
-    } else {
-        SecondaryIndexID newSecondary;
-        strcpy(newSecondary.ID, newAppointment.doctorID);
-        newSecondary.appointmentsIDs.push_back(newAppointment.appointmentID);
-        doctorIDSecondaryIndexForAppointments.push_back(newSecondary);
+        if (it != doctorIDSecondaryIndexForAppointments.end()) {
+            it->appointmentsIDs.push_back(newAppointment.appointmentID);
+        } else {
+            SecondaryIndexID newSecondary;
+            strcpy(newSecondary.ID, newAppointment.doctorID);
+            newSecondary.appointmentsIDs.push_back(newAppointment.appointmentID);
+            doctorIDSecondaryIndexForAppointments.push_back(newSecondary);
+        }
+        writeDoctorIDSecondaryIndex();
+        cout << "Appointment added successfully!" << "\n";
+
+        appointmentFile<< record;
     }
-    writeDoctorIDSecondaryIndex();
-    cout << "Appointment added successfully!" << "\n";
+    else{
+       
 
-    appointmentFile<< record;
+    }
+
     appointmentFile.close();
 }
 
@@ -952,7 +968,7 @@ void deleteAppointment(){
     file.get(sizerec,3);
 
 
-    list0.insertAtEnd(offset,sizerec);
+    list0.insertAtEnd(offset, stoi(sizerec));
     fstream availfile("availlist.txt",ios::app );
     availfile<<offset<<" "<<sizerec<<"\n";
 
