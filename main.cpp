@@ -1,47 +1,106 @@
 #include <bits/stdc++.h>
 #include <fstream>
 using namespace std;
-struct node
+
+struct Node
 {
     short offset;
     string size;
-    node *next;
+    Node *next;
 };
 
 class availlist{
 private:
-    node* header = nullptr;
-    node* tail = nullptr;
+    Node* head ;
 
 public:
-    void add(short offset , string sizer){
-        node* temp ;
-        temp->offset=offset;
-        temp->size = sizer;
-        if (header == nullptr && tail == nullptr)
-            header = temp, tail= temp;
-
-        else{
-            tail->next=temp;
-            tail= tail->next;
-        }
+    availlist() : head(NULL){}
+    void insertAtBeginning(short offset , string size) {
+        Node* newNode = new Node();
+        newNode->offset = offset;
+        newNode->size = size;
+        newNode->next = head;
+        head = newNode;
     }
 
-    void delet (short offset){
-        node* prev= nullptr;
-        node* temp = header ;
-        if (header != nullptr){
-            while (temp != nullptr){
-                if (temp->offset == offset){
-                    prev->next=temp->next;
-                    delete temp;
-                    return;
-                }
-                prev= temp;
-                temp = temp->next;
-            }
+    void insertAtEnd(short offset , string size) {
+        Node* newNode = new Node();
+        newNode->offset = offset;
+        newNode->size = size;
+        newNode->next = NULL;
+
+        if (!head) {
+            head = newNode;
+            return;
         }
 
+        Node* temp = head;
+        while (temp->next) {
+            temp = temp->next;
+        }
+        temp->next = newNode;
+    }
+
+    void deleteFromBeginning() {
+        if (!head) {
+            cout << "List is empty." << endl;
+            return;
+        }
+
+        Node* temp = head;
+        head = head->next;
+        delete temp;
+    }
+    
+    void deleteFromOffset(short offset) {
+        int position = 0 ;
+        Node* test = head;
+        while (test){
+            if (test->offset == offset) break;
+            position++;
+            test = test->next;
+        }
+        
+        
+        if (position < 1) {
+            cout << "Avail list is Empty >= 1." << endl;
+            return;
+        }
+
+        if (position == 1) {
+            deleteFromBeginning();
+            return;
+        }
+
+        Node* temp = head;
+        for (int i = 1; i < position - 1 && temp; ++i) {
+            temp = temp->next;
+        }
+
+        if (!temp || !temp->next) {
+            cout << "The offset is not found" << endl;
+            return;
+        }
+        // Save the node to be deleted
+        Node* nodeToDelete = temp->next;
+        // Update the next pointer
+        temp->next = temp->next->next;
+        // Delete the node
+        delete nodeToDelete;
+    }
+    
+    void display() {
+        if (!head) {
+            cout << "List is empty." << endl;
+            return;
+        }
+
+        Node* temp = head;
+        while (temp) {
+            cout << temp->offset << "  " << temp->size <<" \n";
+            temp = temp->next;
+        }
+        cout << "NULL" << endl;
     }
 };
 
