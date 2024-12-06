@@ -51,7 +51,7 @@ public:
         head = head->next;
         delete temp;
     }
-    
+
     void deleteFromOffset(short offset) {
         int position = 0 ;
         Node* test = head;
@@ -60,8 +60,8 @@ public:
             position++;
             test = test->next;
         }
-        
-        
+
+
         if (position < 1) {
             cout << "Avail list is Empty >= 1." << endl;
             return;
@@ -88,7 +88,7 @@ public:
         // Delete the node
         delete nodeToDelete;
     }
-    
+
     void display() {
         if (!head) {
             cout << "List is empty." << endl;
@@ -102,8 +102,16 @@ public:
         }
         cout << "NULL" << endl;
     }
-};
 
+    bool is_offset_exit(short offset){
+        Node* temp = head;
+        while (temp){
+            if (temp->offset == offset)return true;
+            temp = temp->next;
+        }
+        return false;
+    }
+};
 
 const char DELIMITER = '|';
 short headerappointment;
@@ -169,9 +177,9 @@ vector<SecondaryIndexName> doctorNameSecondaryIndex;
 vector<SecondaryIndexID> doctorIDSecondaryIndexForAppointments;
 vector<Doctor>availList_Doctor;
 vector<Appointment>availList_Appointment;
-short headerDoctor;
-short headerAppointment;
-availlist list0;
+//short headerDoctor;
+//short headerAppointment;
+availlist list0 = *new availlist;
 
 
 // Function declarations
@@ -188,7 +196,6 @@ void processQuery();
 void loadIndexes();
 void loadheader();
 void  loadavaillist();
-//void  loadDoctors();
 //void loadAppointments();
 void printDoctorInfo();
 void printAppointmentInfo();
@@ -196,6 +203,7 @@ void printAppointmentInfo();
 int main() {
     loadIndexes();
     loadheader();
+    loadavaillist();
     //loadDoctors();
     //loadAppointments();
 
@@ -208,7 +216,7 @@ int main() {
             case 2: addAppointment(); break;
             case 3: updateDoctorName(); break;
             case 4: updateAppointmentDate(); break;
-//            case 5: deleteAppointment(); break;
+            case 5: deleteAppointment(); break;
                 //case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
             case 8: printAppointmentInfo(); break;
@@ -343,6 +351,20 @@ void loadIndexes() {
 
     cout << "All indexes loaded successfully." << endl;
 }
+
+void  loadavaillist(){
+    fstream availfile("availlist.txt",ios::in );
+    availfile.seekp(0,ios::end);
+    if (availfile.tellp() != 0){
+        availfile.seekg(0,ios::beg);
+        while (!availfile.eof()){
+            short off; string size;
+            availfile >> off >> size;
+            list0.insertAtEnd(off,size);
+        }
+    }
+}
+
 void writeDoctorNameSecondaryIndex() {
     // Ensure no duplicates are in memory before writing
     std::sort(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
@@ -376,7 +398,6 @@ void writeDoctorNameSecondaryIndex() {
     cout << "Doctor Name Secondary Index written successfully." << "\n";
 }
 
-
 void writeDoctorIDSecondaryIndex() {
     fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::out | ios::trunc);
     if (!doctorIDSecondaryIndexFile.is_open()) {
@@ -385,9 +406,9 @@ void writeDoctorIDSecondaryIndex() {
     }
 
     for (const auto &entry : doctorIDSecondaryIndexForAppointments) {
-        doctorIDSecondaryIndexFile << entry.ID << DELIMITER;
+        doctorIDSecondaryIndexFile << entry.ID << " ";
         for (const auto &appointmentID : entry.appointmentsIDs) {
-            doctorIDSecondaryIndexFile << appointmentID << ",";
+            doctorIDSecondaryIndexFile << appointmentID << "\n";
         }
         doctorIDSecondaryIndexFile << "\n";
     }
@@ -571,7 +592,7 @@ void addAppointment() {
         int sizefile=appointmentFile.tellg();
         if(sizefile==0){
             appointmentFile<<-1<<'|';
-            headerAppointment=-1;
+//            headerAppointment=-1;
 
         }
 
@@ -636,13 +657,13 @@ void addDoctor() {
         int sizefile=doctorFile.tellg();
         if(sizefile==0){
             doctorFile<<-1<<'|';
-            headerDoctor=-1;
+//            headerDoctor=-1;
         }
 
     }
     int size = 3 + strlen(newDoctor.doctorID) + strlen(newDoctor.doctorName) +
                strlen(newDoctor.address);
-    
+
     doctorFile << convert(size);
     doctorFile.seekp(0, ios::end);
     int offset = doctorFile.tellp();
@@ -904,4 +925,55 @@ void printAppointmentInfo() {
     } else {
         cout << "No appointment exists with this ID." << "\n";
     }
+}
+
+void deleteAppointment(){
+    fstream file("appointments.txt", ios::in | ios::out);
+    file.seekg(0,ios::end);
+    if (file.tellg() == 0){
+        cout<<"Appointment is empty\n";
+        return;
+    }
+    char id[15];
+    cout<<"Enter ID: "<<endl;
+    cin>>id;
+
+    short offset = findAppointmentOffset(id);
+    if (list0.is_offset_exit(offset)){
+        cout<<"ID is not found\n";
+        return;
+    }
+
+    file.seekg(offset-2,ios::beg);
+    char sizerec[3];
+    file.get(sizerec,3);
+
+
+    list0.insertAtEnd(offset,sizerec);
+    fstream availfile("availlist.txt",ios::app );
+    availfile<<offset<<" "<<sizerec<<"\n";
+
+    file.seekp(offset-2,ios::beg);
+    file<<'*';
+
+    file.seekp(0,ios::beg);
+    if (offset<10)file<<0;
+    file<<offset;
+
+    fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::in | ios::out);
+    string check ;
+    while (!appointmentPrimaryIndexFile.eof()){
+        cout<<"1\n";
+        appointmentPrimaryIndexFile>>check;
+        cout<<check<<"******\n";
+        if (check == id){
+            cout<<"2\n";
+            appointmentPrimaryIndexFile<<" "<<-1<<"\n";
+            break;
+        }
+    }
+
+cout<<"Deleted Appointment "<<id <<" "<< sizerec<<"\n";
+
+
 }
