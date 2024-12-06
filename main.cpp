@@ -1,10 +1,63 @@
 #include <bits/stdc++.h>
 #include <fstream>
 using namespace std;
+struct node
+{
+    short offset;
+    node *next;
+};
+
+class availlist{
+private:
+    node* header = nullptr;
+    node* tail = nullptr;
+
+public:
+    void add(short offset){
+        node* temp ;
+        temp->offset=offset;
+        if (header == nullptr && tail == nullptr)
+            header = temp, tail= temp;
+
+        else{
+            tail->next=temp;
+            tail= tail->next;
+        }
+
+
+    }
+
+    void delet (short offset){
+        node* prev= nullptr;
+        node* temp = header ;
+        if (header != nullptr){
+            while (temp != nullptr){
+                if (temp->offset == offset){
+                    prev->next=temp->next;
+                    delete temp;
+                    return;
+                }
+                prev= temp;
+                temp = temp->next;
+            }
+        }
+
+    }
+};
 
 const char DELIMITER = '|';
 short headerappointment;
 short headerdoctor;
+
+string convert(int size){
+    string s="0";
+    if (size<10){
+        s+= to_string(size);
+    }
+    else s = to_string(size);
+
+    return s;
+}
 
 // Define structures
 struct Doctor {
@@ -48,8 +101,6 @@ struct SecondaryIndexID {
     }
 };
 
-
-
 vector<PrimaryIndex> doctorPrimaryIndex;
 vector<Doctor> doctors;
 vector<Appointment> appointments;
@@ -83,8 +134,8 @@ void printAppointmentInfo();
 int main() {
     loadIndexes();
     loadheader();
-   //loadDoctors();
-   //loadAppointments();
+    //loadDoctors();
+    //loadAppointments();
 
     int choice;
     do {
@@ -94,11 +145,11 @@ int main() {
             case 1: addDoctor(); break;
             case 2: addAppointment(); break;
             case 3: updateDoctorName(); break;
-          case 4: updateAppointmentDate(); break;
+            case 4: updateAppointmentDate(); break;
 //            case 5: deleteAppointment(); break;
-          //case 6: deleteDoctor(); break;
-                 case 7: printDoctorInfo(); break;
-                case 8: printAppointmentInfo(); break;
+                //case 6: deleteDoctor(); break;
+            case 7: printDoctorInfo(); break;
+            case 8: printAppointmentInfo(); break;
 //            case 9: processQuery(); break;
             case 10: break; // Exit
             default: cout << "Invalid choice. Please try again." << "\n";
@@ -466,7 +517,8 @@ void addAppointment() {
     int size = 3 + strlen(newAppointment.appointmentID) + strlen(newAppointment.appointmentDate) +
                strlen(newAppointment.doctorID);
 
-    appointmentFile << size;
+
+    appointmentFile << convert(size);
     appointmentFile.seekp(0, ios::end);
     int offset = appointmentFile.tellp();
     //search
@@ -528,7 +580,8 @@ void addDoctor() {
     }
     int size = 3 + strlen(newDoctor.doctorID) + strlen(newDoctor.doctorName) +
                strlen(newDoctor.address);
-    doctorFile << size;
+    
+    doctorFile << convert(size);
     doctorFile.seekp(0, ios::end);
     int offset = doctorFile.tellp();
     //search
@@ -790,4 +843,3 @@ void printAppointmentInfo() {
         cout << "No appointment exists with this ID." << "\n";
     }
 }
-
