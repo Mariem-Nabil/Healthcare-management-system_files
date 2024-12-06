@@ -646,6 +646,42 @@ void updateDoctorName() {
         doctorFile<<' ';
         sizecurrent--;
     }
+    // Update the secondary index
+    auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
+                      [&](const SecondaryIndexName &entry) {
+                          return strcmp(entry.Name, fields[1].c_str()) == 0;
+                      });
+
+    if (it != doctorNameSecondaryIndex.end()) {
+        // Remove the doctor ID from the current name group
+        auto &ids = it->IDs;
+        ids.erase(remove(ids.begin(), ids.end(), string(doctorID)), ids.end());
+
+        // If no IDs remain for this name, remove the name entry
+        if (ids.empty()) {
+            doctorNameSecondaryIndex.erase(it);
+        }
+    }
+
+    // Add the doctor ID to the new name group
+    auto newIt = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
+                         [&](const SecondaryIndexName &entry) {
+                             return strcmp(entry.Name, newDoctorName.c_str()) == 0;
+                         });
+
+    if (newIt != doctorNameSecondaryIndex.end()) {
+        // Add to an existing group
+        newIt->IDs.push_back(doctorID);
+    } else {
+        // Create a new group for the new name
+        SecondaryIndexName newEntry;
+        strcpy(newEntry.Name, newDoctorName.c_str());
+        newEntry.IDs.push_back(doctorID);
+        doctorNameSecondaryIndex.push_back(newEntry);
+    }
+
+    // Rewrite the secondary index file
+    writeDoctorNameSecondaryIndex();
     doctorFile.close();
     cout << "Doctor name updated successfully.\n";
 }
@@ -754,3 +790,4 @@ void printAppointmentInfo() {
         cout << "No appointment exists with this ID." << "\n";
     }
 }
+
