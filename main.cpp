@@ -52,8 +52,7 @@ vector<PrimaryIndex> doctorPrimaryIndex;
 vector<PrimaryIndex> appointmentPrimaryIndex;
 vector<SecondaryIndexName> doctorNameSecondaryIndex;
 vector<SecondaryIndexID> doctorIDSecondaryIndexForAppointments;
-/*short headerDoctor;
-short headerAppointment;*/
+
 
 
 // Function declarations
@@ -80,9 +79,9 @@ int main() {
         switch (choice) {
             case 1: addDoctor(); break;
             case 2: addAppointment(); break;
-                // case 3: updateDoctorName(); break;
+            case 3: updateDoctorName(); break;
 //            case 4: updateAppointmentDate(); break;
-//            case 5: deleteAppointment(); break;
+//           case 5: deleteAppointment(); break;
 //            case 6: deleteDoctor(); break;
                 //  case 7: printDoctorInfo(); break;
                 //case 8: printAppointmentInfo(); break;
@@ -243,16 +242,14 @@ int binarySearchPrimaryIndex_doctor(const vector<PrimaryIndex>& primaryIndex,con
 }
 // Find doctor index using primary index
 int findDoctorOffset(const char* doctorID) {
-    int index = binarySearchPrimaryIndex_doctor(doctorPrimaryIndex, doctorID);
-    return (index == -1) ? -1 : doctorPrimaryIndex[index].offset;
+    return  binarySearchPrimaryIndex_doctor(doctorPrimaryIndex, doctorID);
 }
 
 // Find appointment index using primary index
 int findAppointmentOffset(const char* appointmentID) {
-    int index = binarySearchPrimaryIndex_appointment(appointmentPrimaryIndex, appointmentID);
-    return (index == -1) ? -1 : appointmentPrimaryIndex[index].offset;
-}
 
+    return binarySearchPrimaryIndex_appointment(appointmentPrimaryIndex, appointmentID);
+}
 static bool comparePrimaryIndexByID(const PrimaryIndex& a, const PrimaryIndex& b) {
     return strcmp(a.ID, b.ID) < 0; // Compare IDs lexicographically
 }
@@ -290,7 +287,7 @@ void addAppointment() {
         }
 
     }
-    int size = 3 + strlen(newAppointment.appointmentID) + strlen(newAppointment.appointmentDate) +
+    short size = 3 + strlen(newAppointment.appointmentID) + strlen(newAppointment.appointmentDate) +
                strlen(newAppointment.doctorID);
 
     appointmentFile << size;
@@ -315,6 +312,8 @@ void addAppointment() {
     appointmentFile<< record;
 
 }
+
+
 
 //add doctor
 void addDoctor() {
@@ -366,6 +365,74 @@ void addDoctor() {
     strcpy(newSecondary.ID, newDoctor.doctorID);
     doctorNameSecondaryIndex.push_back(newSecondary);
     doctorNameSecondaryIndexFile<<newSecondary.Name<<" "<<newSecondary.ID<<endl;
-
     doctorFile<< record;
 }
+
+
+
+
+void updateDoctorName() {
+    char doctorID[15];
+    cout << "Enter Doctor ID to update: ";
+    cin >> doctorID;
+
+    // Find doctor offset
+    int doctorOffset = findDoctorOffset(doctorID);
+    if (doctorOffset == -1) {
+        cout << "Doctor ID not found.\n";
+        return;
+    }
+
+    // Open file in read/write mode
+    fstream doctorFile("doctors.txt", ios::in | ios::out);
+    if (!doctorFile.is_open()) {
+        cout << "Failed to open doctor file.\n";
+        return;
+    }
+    doctorFile.seekg(doctorOffset, ios::beg);
+    string record;
+    getline(doctorFile, record);
+
+    // Parse the record
+    vector<string> fields;
+    stringstream ss(record);
+    string field;
+    while (getline(ss, field, DELIMITER)) {
+        fields.push_back(field);
+    }
+
+    if (fields.size() < 3) {
+        cout << "Corrupted record found. Update aborted.\n";
+        doctorFile.close();
+        return;
+    }
+
+    // Display current doctor name and ask for the new name
+    cout << "Current Doctor Name: " << fields[1] << endl;
+    int sizecurrent=fields[1].length();
+    doctorFile.seekg(0, ios::beg);
+    doctorFile.seekg(doctorOffset, ios::beg);
+    string newDoctorName;
+    cout << "Enter New Doctor Name: ";
+    cin.ignore();
+    getline(cin, newDoctorName);
+    doctorFile<<doctorID<<"|"<<newDoctorName;
+    sizecurrent-=newDoctorName.length();
+    while(sizecurrent>0){
+        doctorFile<<' ';
+        sizecurrent--;
+    }
+    doctorFile.close();
+    cout << "Doctor name updated successfully.\n";
+
+
+
+}
+
+
+
+
+
+
+
+
