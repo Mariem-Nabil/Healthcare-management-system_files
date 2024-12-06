@@ -93,10 +93,126 @@ public:
         delete nodeToDelete;
     }
 
-    short getoffset(int size){
+    pair<short,int> getoffset(int size){
         Node* temp = head;
         while (temp) {
-            if (temp->size >= size)return temp->offset;
+            if (temp->size >= size)return {temp->offset,temp->size};
+            temp = temp->next;
+        }
+    }
+
+    void display() {
+        if (!head) {
+            cout << "List is empty." << endl;
+            return;
+        }
+
+        Node* temp = head;
+        while (temp) {
+            cout << temp->offset << "  " << temp->size <<" \n";
+            temp = temp->next;
+        }
+        cout << "NULL" << endl;
+    }
+
+    bool is_offset_exit(short offset){
+        Node* temp = head;
+        while (temp){
+            if (temp->offset == offset)return true;
+            temp = temp->next;
+        }
+        return false;
+    }
+};
+
+class availlistdoc{
+private:
+    Node* head ;
+
+public:
+    availlistdoc() : head(NULL){}
+    bool is_empty(){
+        return head==NULL;
+    }
+
+    void insertAtBeginning(short offset , int size) {
+        Node* newNode = new Node();
+        newNode->offset = offset;
+        newNode->size = size;
+        newNode->next = head;
+        head = newNode;
+    }
+
+    void insertAtEnd(short offset , int size) {
+        Node* newNode = new Node();
+        newNode->offset = offset;
+        newNode->size = size;
+        newNode->next = NULL;
+
+        if (!head) {
+            head = newNode;
+            return;
+        }
+
+        Node* temp = head;
+        while (temp->next) {
+            temp = temp->next;
+        }
+        temp->next = newNode;
+    }
+
+    void deleteFromBeginning() {
+        if (!head) {
+            cout << "List is empty." << endl;
+            return;
+        }
+
+        Node* temp = head;
+        head = head->next;
+        delete temp;
+    }
+
+    void deleteFromOffset(short offset) {
+        int position = 0 ;
+        Node* test = head;
+        while (test){
+            if (test->offset == offset) break;
+            position++;
+            test = test->next;
+        }
+
+
+        if (position < 1) {
+            cout << "Avail list is Empty >= 1." << endl;
+            return;
+        }
+
+        if (position == 1) {
+            deleteFromBeginning();
+            return;
+        }
+
+        Node* temp = head;
+        for (int i = 1; i < position - 1 && temp; ++i) {
+            temp = temp->next;
+        }
+
+        if (!temp || !temp->next) {
+            cout << "The offset is not found" << endl;
+            return;
+        }
+        // Save the node to be deleted
+        Node* nodeToDelete = temp->next;
+        // Update the next pointer
+        temp->next = temp->next->next;
+        // Delete the node
+        delete nodeToDelete;
+    }
+
+    pair<short,int> getoffset(int size){
+        Node* temp = head;
+        while (temp) {
+            if (temp->size >= size)return {temp->offset,temp->size};
             temp = temp->next;
         }
     }
@@ -192,6 +308,8 @@ vector<Appointment>availList_Appointment;
 //short headerDoctor;
 //short headerAppointment;
 availlist list0 = *new availlist;
+availlistdoc listdoc = *new availlistdoc;
+
 
 
 // Function declarations
@@ -229,7 +347,7 @@ int main() {
             case 3: updateDoctorName(); break;
             case 4: updateAppointmentDate(); break;
             case 5: deleteAppointment(); break;
-                //case 6: deleteDoctor(); break;
+            case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
             case 8: printAppointmentInfo(); break;
 //            case 9: processQuery(); break;
@@ -365,7 +483,8 @@ void loadIndexes() {
 }
 
 void  loadavaillist(){
-    fstream availfile("availlist.txt",ios::in );
+    fstream availfile("availlist.txt",ios::in | ios::app );
+    availfile<<"";
     availfile.seekp(0,ios::end);
     if (availfile.tellp() != 0){
         availfile.seekg(0,ios::beg);
@@ -375,6 +494,19 @@ void  loadavaillist(){
             list0.insertAtEnd(off,size);
         }
     }
+
+    fstream availfiledoc("availlistdoc.txt",ios::app | ios::in );
+    availfiledoc<<"";
+    availfiledoc.seekp(0,ios::end);
+    if (availfiledoc.tellp() != 0){
+        availfiledoc.seekg(0,ios::beg);
+        while (!availfiledoc.eof()){
+            short off; int size;
+            availfiledoc >> off >> size;
+            listdoc.insertAtEnd(off,size);
+        }
+    }
+
 }
 
 void writeDoctorNameSecondaryIndex() {
@@ -644,7 +776,9 @@ void addAppointment() {
         appointmentFile<< record;
     }
     else{
-       
+       short off ; int newsize;
+
+
 
     }
 
@@ -1005,5 +1139,66 @@ void deleteAppointment(){
 
 cout<<"Deleted Appointment "<<"\n";
 
+
+}
+
+void deleteDoctor(){
+    fstream outfile("doctors.txt", ios::in | ios::out);
+    outfile.seekg(0,ios::end);
+    if (outfile.tellg() == 0){
+        cout<<"Appointment is empty\n";
+        return;
+    }
+    char id[15];
+    cout<<"Enter ID: "<<endl;
+    cin>>id;
+
+    short offset = findDoctorOffset(id);
+    if (listdoc.is_offset_exit(offset) || offset == -1){
+        cout<<"ID is not found\n";
+        return;
+    }
+
+    outfile.seekg(offset-2,ios::beg);
+    char sizerec[3];
+    outfile.get(sizerec,3);
+
+
+    listdoc.insertAtEnd(offset, stoi(sizerec));
+    fstream availfile("availlist.txt",ios::app );
+    availfile<<offset<<" "<<sizerec<<"\n";
+
+    outfile.seekp(offset-2,ios::beg);
+    outfile<<'*';
+
+    outfile.seekp(0,ios::beg);
+    if (offset<10)outfile<<0;
+    outfile<<offset;
+
+    fstream doctorPrimaryIndexFile("doctor_primary_index.txt", ios::in | ios::out);
+    string check , off ;
+    while (!doctorPrimaryIndexFile.eof()){
+        doctorPrimaryIndexFile>>check;
+        if (check == id){
+            doctorPrimaryIndexFile<<" #";
+            break;
+        }
+        doctorPrimaryIndexFile>>off;
+    }
+
+    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in | ios::out);
+    string name,check0 ;
+    while (!doctorNameSecondaryIndexFile.eof()){
+        doctorNameSecondaryIndexFile>>name>>check0;
+        if (check0 == id){
+            int index = doctorNameSecondaryIndexFile.tellp();
+            index--;
+            doctorNameSecondaryIndexFile.seekp(index,ios::beg);
+            doctorNameSecondaryIndexFile<<"#";
+            break;
+        }
+    }
+
+    cout<<"Deleted Doctor "<<"\n";
 
 }
