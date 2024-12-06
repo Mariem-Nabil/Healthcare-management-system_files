@@ -4,6 +4,7 @@ using namespace std;
 struct node
 {
     short offset;
+    string size;
     node *next;
 };
 
@@ -13,9 +14,10 @@ private:
     node* tail = nullptr;
 
 public:
-    void add(short offset){
+    void add(short offset , string sizer){
         node* temp ;
         temp->offset=offset;
+        temp->size = sizer;
         if (header == nullptr && tail == nullptr)
             header = temp, tail= temp;
 
@@ -23,8 +25,6 @@ public:
             tail->next=temp;
             tail= tail->next;
         }
-
-
     }
 
     void delet (short offset){
@@ -44,6 +44,7 @@ public:
 
     }
 };
+
 
 const char DELIMITER = '|';
 short headerappointment;
@@ -111,6 +112,7 @@ vector<Doctor>availList_Doctor;
 vector<Appointment>availList_Appointment;
 short headerDoctor;
 short headerAppointment;
+availlist list0;
 
 
 // Function declarations
@@ -126,6 +128,7 @@ void displayMenu();
 void processQuery();
 void loadIndexes();
 void loadheader();
+void  loadavaillist();
 //void  loadDoctors();
 //void loadAppointments();
 void printDoctorInfo();
