@@ -15,6 +15,9 @@ private:
 
 public:
     availlist() : head(NULL){}
+     bool is_empty(){
+        return head==NULL;
+    }
     void insertAtBeginning(short offset , string size) {
         Node* newNode = new Node();
         newNode->offset = offset;
