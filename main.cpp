@@ -939,7 +939,7 @@ void deleteAppointment(){
     cin>>id;
 
     short offset = findAppointmentOffset(id);
-    if (list0.is_offset_exit(offset)){
+    if (list0.is_offset_exit(offset) || offset == -1){
         cout<<"ID is not found\n";
         return;
     }
@@ -961,19 +961,30 @@ void deleteAppointment(){
     file<<offset;
 
     fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::in | ios::out);
-    string check ;
+    string check , off ;
     while (!appointmentPrimaryIndexFile.eof()){
-        cout<<"1\n";
         appointmentPrimaryIndexFile>>check;
-        cout<<check<<"******\n";
         if (check == id){
-            cout<<"2\n";
-            appointmentPrimaryIndexFile<<" "<<-1<<"\n";
+            appointmentPrimaryIndexFile<<" #";
+            break;
+        }
+        appointmentPrimaryIndexFile>>off;
+    }
+
+    fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::in | ios::out);
+    string idoc,check0 ;
+    while (!doctorIDSecondaryIndexFile.eof()){
+        doctorIDSecondaryIndexFile>>idoc>>check0;
+        if (check0 == id){
+           int index = doctorIDSecondaryIndexFile.tellp();
+           index--;
+            doctorIDSecondaryIndexFile.seekp(index,ios::beg);
+            doctorIDSecondaryIndexFile<<"#";
             break;
         }
     }
 
-cout<<"Deleted Appointment "<<id <<" "<< sizerec<<"\n";
+cout<<"Deleted Appointment "<<"\n";
 
 
 }
