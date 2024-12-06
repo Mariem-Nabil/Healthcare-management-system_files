@@ -298,13 +298,13 @@ struct SecondaryIndexID {
 };
 
 vector<PrimaryIndex> doctorPrimaryIndex;
-vector<Doctor> doctors;
-vector<Appointment> appointments;
+//vector<Doctor> doctors;
+//vector<Appointment> appointments;
 vector<PrimaryIndex> appointmentPrimaryIndex;
 vector<SecondaryIndexName> doctorNameSecondaryIndex;
 vector<SecondaryIndexID> doctorIDSecondaryIndexForAppointments;
-vector<Doctor>availList_Doctor;
-vector<Appointment>availList_Appointment;
+//vector<Doctor>availList_Doctor;
+//vector<Appointment>availList_Appointment;
 //short headerDoctor;
 //short headerAppointment;
 availlist list0 = *new availlist;
@@ -420,7 +420,7 @@ void loadIndexes() {
     cout << "Loaded " << appointmentPrimaryIndex.size() << " appointment primary index records." << endl;
 
     // Load Secondary Index for Doctor Names
-    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in);
+    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in | ios:: app);
     if (!doctorNameSecondaryIndexFile.is_open()) {
         cerr << "Error: Could not open doctor name secondary index file!" << endl;
     } else {
@@ -523,7 +523,7 @@ void writeDoctorNameSecondaryIndex() {
     doctorNameSecondaryIndex.erase(last, doctorNameSecondaryIndex.end());
 
     // Open the file with truncation
-    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::out | ios::trunc);
+    fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::app | ios::trunc);
     if (!doctorNameSecondaryIndexFile.is_open()) {
         cerr << "Error: Could not open doctor_name_secondary_index.txt for writing!" << "\n";
         return;
@@ -531,9 +531,9 @@ void writeDoctorNameSecondaryIndex() {
 
     // Write each entry to the file
     for (const auto &entry : doctorNameSecondaryIndex) {
-        doctorNameSecondaryIndexFile << entry.Name <<DELIMITER;
+        doctorNameSecondaryIndexFile << entry.Name <<" ";
         for (const auto &id : entry.IDs) {
-            doctorNameSecondaryIndexFile << id <<",";
+            doctorNameSecondaryIndexFile << id <<" ";
         }
         doctorNameSecondaryIndexFile << "\n";
     }
@@ -543,7 +543,7 @@ void writeDoctorNameSecondaryIndex() {
 }
 
 void writeDoctorIDSecondaryIndex() {
-    fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::out | ios::trunc);
+    fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::app | ios::trunc);
     if (!doctorIDSecondaryIndexFile.is_open()) {
         cerr << "Error: Could not open doctor_id_secondary_index.txt for writing!" << "\n";
         return;
@@ -745,7 +745,7 @@ void addAppointment() {
                strlen(newAppointment.doctorID);
 
 
-    if (list0.is_empty()){
+//    if (list0.is_empty()){
         appointmentFile << convert(size);
         appointmentFile.seekp(0, ios::end);
         int offset = appointmentFile.tellp();
@@ -774,13 +774,13 @@ void addAppointment() {
         cout << "Appointment added successfully!" << "\n";
 
         appointmentFile<< record;
-    }
-    else{
-       short off ; int newsize;
-
-
-
-    }
+//    }
+//    else{
+//       short off ; int newsize;
+//
+//
+//
+//    }
 
     appointmentFile.close();
 }
@@ -1129,10 +1129,10 @@ void deleteAppointment(){
     while (!doctorIDSecondaryIndexFile.eof()){
         doctorIDSecondaryIndexFile>>idoc>>check0;
         if (check0 == id){
-           int index = doctorIDSecondaryIndexFile.tellp();
-           index--;
+            int index = doctorIDSecondaryIndexFile.tellp();
+            index-=2;
             doctorIDSecondaryIndexFile.seekp(index,ios::beg);
-            doctorIDSecondaryIndexFile<<"#";
+            doctorIDSecondaryIndexFile<<" #";
             break;
         }
     }
@@ -1146,7 +1146,7 @@ void deleteDoctor(){
     fstream outfile("doctors.txt", ios::in | ios::out);
     outfile.seekg(0,ios::end);
     if (outfile.tellg() == 0){
-        cout<<"Appointment is empty\n";
+        cout<<"Doctor is empty\n";
         return;
     }
     char id[15];
@@ -1165,8 +1165,8 @@ void deleteDoctor(){
 
 
     listdoc.insertAtEnd(offset, stoi(sizerec));
-    fstream availfile("availlist.txt",ios::app );
-    availfile<<offset<<" "<<sizerec<<"\n";
+    fstream availfiledoc("availlistdoc.txt",ios::app | ios::in );
+    availfiledoc<<offset<<" "<<sizerec<<"\n";
 
     outfile.seekp(offset-2,ios::beg);
     outfile<<'*';
@@ -1187,14 +1187,15 @@ void deleteDoctor(){
     }
 
     fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in | ios::out);
-    string name,check0 ;
+    string name,check0, space ;
     while (!doctorNameSecondaryIndexFile.eof()){
-        doctorNameSecondaryIndexFile>>name>>check0;
+        doctorNameSecondaryIndexFile>>name;
+        doctorNameSecondaryIndexFile>>check0;
         if (check0 == id){
-            int index = doctorNameSecondaryIndexFile.tellp();
-            index--;
-            doctorNameSecondaryIndexFile.seekp(index,ios::beg);
-            doctorNameSecondaryIndexFile<<"#";
+            int ind = doctorNameSecondaryIndexFile.tellp();
+            ind-=2;
+            doctorNameSecondaryIndexFile.seekp(ind,ios::beg);
+            doctorNameSecondaryIndexFile<<" #";
             break;
         }
     }
