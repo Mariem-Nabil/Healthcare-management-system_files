@@ -103,7 +103,7 @@ int main() {
 //            case 6: deleteDoctor(); break;
             case 7: printDoctorInfo(); break;
             case 8: printAppointmentInfo(); break;
-//            case 9: processQuery(); break;
+            case 9: processQuery(); break;
             case 10: break; // Exit
             default: cout << "Invalid choice. Please try again." << "\n";
         }
@@ -627,6 +627,260 @@ void printAppointmentInfo() {
         cout << "Doctor's ID: " << doctorID << "\n";
     } else {
         cout << "No appointment exists with this ID." << "\n";
+    }
+}
+
+void processQuery(){
+    string query;
+    cout << "Enter your query: ";
+    cin.ignore();
+    getline(cin, query);
+    string queryLower = query;
+    transform(queryLower.begin(), queryLower.end(), queryLower.begin(), ::tolower);
+
+    // Check if the query starts with "select"
+    if (queryLower.substr(0, 6) != "select") {
+        cout << "Invalid query. Only SELECT queries are supported.\n";
+        return;
+    }
+    // Parse query components
+    size_t selectPos = queryLower.find("select") + 6;
+    size_t fromPos = queryLower.find("from");
+    size_t wherePos = queryLower.find("where");
+
+    if (fromPos == string::npos) {
+        cout << "Invalid query. Missing FROM clause.\n";
+        return;
+    }
+
+    // Extract SELECT fields, table name, and WHERE clause (if any)
+    string selectFields = query.substr(selectPos, fromPos - selectPos);
+    selectFields.erase(remove(selectFields.begin(), selectFields.end(), ' '), selectFields.end()); // Remove spaces
+    string tableName = query.substr(fromPos + 5, (wherePos == string::npos ? query.size() : wherePos) - (fromPos + 5));
+    tableName.erase(remove(tableName.begin(), tableName.end(), ' '), tableName.end());
+    string whereClause = (wherePos != string::npos) ? query.substr(wherePos + 6) : "";
+//    cout << whereClause << "\n";
+    // Validate table name
+    if (tableName != "doctors" && tableName != "appointments") {
+        cout << "Invalid table name: " << tableName << ".\n";
+        return;
+    }
+
+    // Parse WHERE clause (if exists)
+    string whereField, whereValue;
+    if (!whereClause.empty()) {
+        size_t equalsPos = whereClause.find('=');
+        if (equalsPos == string::npos) {
+            cout << "Invalid WHERE clause. Missing '='.\n";
+            return;
+        }
+        whereField = whereClause.substr(0, equalsPos);
+        whereValue = whereClause.substr(equalsPos + 1);
+//        cout << selectFields << "\n" << whereField << " = " << whereValue << "\n";
+
+    }
+    // Fetch results
+    if (tableName == "doctors") {
+        vector<Doctor> results;
+
+        // Use Primary Index if filtering by Doctor ID
+        if (whereField == "doctor id") {
+            int offset = findDoctorOffset(whereValue.c_str());
+            if (offset != -1) {
+                ifstream infile("doctors.txt");
+                infile.seekg(offset, ios::beg);
+                cout << offset << "\n";
+                string  doctorID, doctorName, doctorAddress;
+                getline(infile, doctorID, DELIMITER);
+                getline(infile, doctorName, DELIMITER);
+                getline(infile, doctorAddress, DELIMITER);
+                infile.close();
+
+
+                Doctor doc;
+                strcpy(doc.doctorID, whereValue.c_str());
+                strcpy(doc.doctorName, doctorName.c_str());
+                strcpy(doc.address, doctorAddress.c_str());
+                results.push_back(doc);
+                infile.close();
+            }
+
+        }
+        else if (whereField == "doctor name") {
+            // Use Secondary Index if filtering by Doctor Name
+            auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
+                              [&](const SecondaryIndexName &entry) {
+                                  return strcmp(entry.Name, whereValue.c_str()) == 0;
+                              });
+
+            if (it != doctorNameSecondaryIndex.end()) {
+                ifstream infile("doctors.txt");
+
+                for (const auto& id : it->IDs) {
+                    int offset = findDoctorOffset(id.c_str());
+                    if (offset != -1) {
+                        infile.seekg(offset, ios::beg);
+//                        cout << offset << "\n";
+                        string  doctorID, doctorName, doctorAddress;
+                        getline(infile, doctorID, DELIMITER);
+                        getline(infile, doctorName, DELIMITER);
+                        getline(infile, doctorAddress, DELIMITER);
+
+
+                        Doctor doc;
+                        strcpy(doc.doctorID, doctorID.c_str());
+                        strcpy(doc.doctorName, doctorName.c_str());
+                        strcpy(doc.address, doctorAddress.c_str());
+                        results.push_back(doc);
+
+                    }
+                }
+                infile.close();
+
+            }
+
+        }
+        else {
+            ifstream infile("doctors.txt");
+
+            // Scan through all doctors if no index can be used
+            for (const auto& primaryIdx : doctorPrimaryIndex) {
+                int offset = primaryIdx.offset;
+                infile.seekg(offset, ios::beg);
+                string  doctorID, doctorName, doctorAddress;
+                getline(infile, doctorID, DELIMITER);
+                getline(infile, doctorName, DELIMITER);
+                getline(infile, doctorAddress, DELIMITER);
+
+
+                Doctor doc;
+                strcpy(doc.doctorID, doctorID.c_str());
+                strcpy(doc.doctorName, doctorName.c_str());
+                strcpy(doc.address, doctorAddress.c_str());
+                results.push_back(doc);
+                }
+            infile.close();
+
+        }
+
+        // Display results
+        if (results.empty()) {
+            cout << "No matching records found.\n";
+        } else {
+            for (const auto& doctor : results) {
+                if (selectFields == "*" || selectFields.find("doctorid") != string::npos || selectFields == "all") {
+                    cout << "Doctor ID: " << doctor.doctorID << "\n";
+                }
+                if (selectFields == "*" || selectFields.find("doctorname") != string::npos || selectFields == "all") {
+                    cout << "Doctor Name: " << doctor.doctorName << "\n";
+                }
+                if (selectFields == "*" || selectFields.find("address") != string::npos || selectFields == "all") {
+                    cout << "Address: " << doctor.address << "\n";
+                }
+                cout << "-------------------------\n";
+            }
+        }
+    } else if (tableName == "appointments") {
+        vector<Appointment> results;
+        // Use Secondary Index if filtering by Doctor ID
+        if (whereField == "appointment id") {
+            // Use Primary Index if filtering by Appointment ID
+            int offset = findAppointmentOffset(whereValue.c_str());
+            if (offset != -1) {
+                // Read the appointment's record from the file
+                ifstream infile("appointments.txt");
+                infile.seekg(offset, ios::beg);
+
+
+                string  appointmentID, appointmentDate, doctorID;
+                getline(infile, appointmentID, DELIMITER);
+                getline(infile, appointmentDate, DELIMITER);
+                getline(infile, doctorID, DELIMITER);
+                infile.close();
+
+                Appointment appt;
+                strcpy(appt.appointmentID, appointmentID.c_str());
+                strcpy(appt.appointmentDate, appointmentDate.c_str());
+                strcpy(appt.doctorID, doctorID.c_str());
+                results.push_back(appt);
+            }
+        }
+        else if (whereField == "doctor id") {
+            auto it = find_if(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end(),
+                              [&](const SecondaryIndexID& index) {
+                                  return strcmp(index.ID, whereValue.c_str()) == 0;
+                              });
+
+            if (it != doctorIDSecondaryIndexForAppointments.end()) {
+                ifstream infile("appointments.txt");
+
+                for (const auto& apptID : it->appointmentsIDs) {
+                    int offset = findAppointmentOffset(apptID.c_str());
+                    if (offset != -1) {
+                        // Read the appointment's record from the file
+                        infile.seekg(offset, ios::beg);
+
+                        string  appointmentID, appointmentDate, doctorID;
+                        getline(infile, appointmentID, DELIMITER);
+                        getline(infile, appointmentDate, DELIMITER);
+                        getline(infile, doctorID, DELIMITER);
+                        infile.close();
+
+                        Appointment appt;
+                        strcpy(appt.appointmentID, appointmentID.c_str());
+                        strcpy(appt.appointmentDate, appointmentDate.c_str());
+                        strcpy(appt.doctorID, doctorID.c_str());
+                        results.push_back(appt);
+                    }
+                }
+                infile.close();
+
+            }
+        }
+        else {
+            // Scan through all appointments if no index can be used
+            ifstream infile("appointments.txt");
+            for (const auto& appointmentIdx : appointmentPrimaryIndex) {
+                int offset = appointmentIdx.offset;
+                infile.seekg(offset, ios::beg);
+
+                string  appointmentID, appointmentDate, doctorID;
+                getline(infile, appointmentID, DELIMITER);
+                getline(infile, appointmentDate, DELIMITER);
+                getline(infile, doctorID, DELIMITER);
+                infile.close();
+
+
+                if(whereField.empty() || (whereField == "appointmentdate" && appointmentDate == whereValue)){
+                    Appointment appt;
+                    strcpy(appt.appointmentID, appointmentID.c_str());
+                    strcpy(appt.appointmentDate, appointmentDate.c_str());
+                    strcpy(appt.doctorID, doctorID.c_str());
+                    results.push_back(appt);
+
+
+                }
+            }
+            infile.close();
+        }
+
+        // Display results
+        if (results.empty()) {
+            cout << "No matching records found.\n";
+        } else {
+            for (const auto& appt : results) {
+                if (selectFields == "*" || selectFields.find("appointmentid") != string::npos || selectFields == "all") {
+                    cout << "Appointment ID: " << appt.appointmentID << "\n";
+                }
+                if (selectFields == "*" || selectFields.find("appointmentdate") != string::npos || selectFields == "all") {
+                    cout << "Appointment Date: " << appt.appointmentDate << "\n";
+                }
+                if (selectFields == "*" || selectFields.find("doctorid") != string::npos || selectFields == "all") {
+                    cout << "Doctor ID: " << appt.doctorID << "\n";
+                }
+                cout << "------------------------\n";
+            }
+        }
     }
 }
 
