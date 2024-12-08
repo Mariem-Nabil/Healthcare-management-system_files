@@ -216,6 +216,7 @@ public:
             if (temp->size >= size)return {temp->offset,temp->size};
             temp = temp->next;
         }
+        return {0,0};
     }
 
     void display() {
@@ -257,8 +258,8 @@ public:
 };
 
 const char DELIMITER = '|';
-short headerappointment;
-short headerdoctor;
+int headerappointment;
+int headerdoctor;
 
 string convert(int size){
     string s="0";
@@ -275,8 +276,8 @@ struct Doctor {
     char doctorID[15];
     char doctorName[30];
     char address[30];
-    short header;
-    int length;
+//    short header;
+//    int length;
 };
 
 struct Appointment {
@@ -288,7 +289,7 @@ struct Appointment {
 };
 
 // Define index structures
-struct PrimaryIndex {
+struct PrimaryIndex : public basic_string<char> {
     char ID[15];
     int offset; // Offset in the data file
     bool operator<(const PrimaryIndex &r) const {
@@ -296,7 +297,7 @@ struct PrimaryIndex {
     }
 };
 
-struct SecondaryIndexName {
+struct SecondaryIndexName : public basic_string<char>  {
     char Name[30] = " ";
     vector<string>IDs;
     bool operator<(const SecondaryIndexName &r) const {
@@ -304,7 +305,7 @@ struct SecondaryIndexName {
     }
 };
 
-struct SecondaryIndexID {
+struct SecondaryIndexID : public basic_string<char>  {
     char ID[15] = " ";
     vector<string>appointmentsIDs; // Appointment offsets
     bool operator<(const SecondaryIndexID &r) const {
@@ -390,17 +391,40 @@ void displayMenu() {
 }
 //load header
 void loadheader(){
-    fstream file("appointments.txt", ios::in);
-    fstream outfile("doctors.txt", ios::in);
-    file>>headerappointment;
-    outfile>>headerdoctor;
+    fstream file("appointments.txt", ios::in | ios::out);
+    fstream outfile("doctors.txt", ios::in | ios::out);
+    if(outfile.is_open()){
+        outfile.seekp(0,ios::end);
+        int sizefile=outfile.tellp();
+        if(sizefile==0){
+            outfile<<-1<<'|';
+            headerdoctor = -1;
+        }else{
+            outfile.seekg(0,ios::beg);
+            outfile>>headerdoctor;
+        }
+    }
+    if(file.is_open()){
+        file.seekp(0,ios::end);
+        int sizefile=file.tellp();
+        if(sizefile==0){
+            file<<-1<<'|';
+            headerappointment = -1;
+        } else{
+            file.seekg(0,ios::beg);
+            file>>headerappointment;
+        }
+    }
+
+    cout<<headerappointment<<"\n";
+    cout<<headerdoctor<<"\n";
 }
 //load indexs
 void loadIndexes() {
     // Open Primary Index File for Doctors
     fstream doctorPrimaryIndexFile("doctor_primary_index.txt", ios::in | ios::binary);
     if (!doctorPrimaryIndexFile.is_open()) {
-        cerr << "Error: Could not open appointment primary index file!" << endl;
+        cerr << "Error: Could not open doctor primary index file!" << endl;
         return;
     }
     while (!doctorPrimaryIndexFile.eof()) {
@@ -529,6 +553,7 @@ void writeDoctorNameSecondaryIndex() {
     doctorNameSecondaryIndexFile.close();
     cout << "Doctor Name Secondary Index written successfully." << "\n";
 }
+
 
 void writeDoctorIDSecondaryIndex() {
     fstream doctorIDSecondaryIndexFile("doctor_id_secondary_index.txt", ios::out | ios::trunc);
@@ -776,34 +801,34 @@ void addAppointment() {
 
 
 //    if (list0.is_empty()){
-        appointmentFile << convert(size);
-        appointmentFile.seekp(0, ios::end);
-        int offset = appointmentFile.tellp();
-        //search
-        sort(appointmentPrimaryIndex.begin(), appointmentPrimaryIndex.end(), comparePrimaryIndexByID);
-        //primary
-        fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::out | ios::app | ios::binary);
-        PrimaryIndex newIndex;
-        strcpy(newIndex.ID, newAppointment.appointmentID);
-        newIndex.offset = offset;
-        appointmentPrimaryIndex.push_back(newIndex);
-        appointmentPrimaryIndexFile<<newAppointment.appointmentID<<" "<<offset<<endl;
-        // Add to Secondary Index
-        auto it = find_if(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end(),
-                          [&](const SecondaryIndexID &s) { return strcmp(s.ID, newAppointment.doctorID) == 0; });
+    appointmentFile << convert(size);
+    appointmentFile.seekp(0, ios::end);
+    int offset = appointmentFile.tellp();
+    //search
+    sort(appointmentPrimaryIndex.begin(), appointmentPrimaryIndex.end(), comparePrimaryIndexByID);
+    //primary
+    fstream appointmentPrimaryIndexFile("appointment_primary_index.txt", ios::out | ios::app | ios::binary);
+    PrimaryIndex newIndex;
+    strcpy(newIndex.ID, newAppointment.appointmentID);
+    newIndex.offset = offset;
+    appointmentPrimaryIndex.push_back(newIndex);
+    appointmentPrimaryIndexFile<<newAppointment.appointmentID<<" "<<offset<<endl;
+    // Add to Secondary Index
+    auto it = find_if(doctorIDSecondaryIndexForAppointments.begin(), doctorIDSecondaryIndexForAppointments.end(),
+                      [&](const SecondaryIndexID &s) { return strcmp(s.ID, newAppointment.doctorID) == 0; });
 
-        if (it != doctorIDSecondaryIndexForAppointments.end()) {
-            it->appointmentsIDs.push_back(newAppointment.appointmentID);
-        } else {
-            SecondaryIndexID newSecondary;
-            strcpy(newSecondary.ID, newAppointment.doctorID);
-            newSecondary.appointmentsIDs.push_back(newAppointment.appointmentID);
-            doctorIDSecondaryIndexForAppointments.push_back(newSecondary);
-        }
-        writeDoctorIDSecondaryIndex();
-        cout << "Appointment added successfully!" << "\n";
+    if (it != doctorIDSecondaryIndexForAppointments.end()) {
+        it->appointmentsIDs.push_back(newAppointment.appointmentID);
+    } else {
+        SecondaryIndexID newSecondary;
+        strcpy(newSecondary.ID, newAppointment.doctorID);
+        newSecondary.appointmentsIDs.push_back(newAppointment.appointmentID);
+        doctorIDSecondaryIndexForAppointments.push_back(newSecondary);
+    }
+    writeDoctorIDSecondaryIndex();
+    cout << "Appointment added successfully!" << "\n";
 
-        appointmentFile<< record;
+    appointmentFile<< record;
 //    }
 //    else{
 //       short off ; int newsize;
@@ -835,45 +860,50 @@ void addDoctor() {
                      string(newDoctor.doctorName) + DELIMITER +
                      string(newDoctor.address)+ DELIMITER;
     fstream doctorFile("doctors.txt",ios::app);
-    if(doctorFile.is_open()){
-        doctorFile.seekp(0,ios::end);
-        int sizefile=doctorFile.tellg();
-        if(sizefile==0){
-            doctorFile<<-1<<'|';
-//            headerDoctor=-1;
-        }
+//    if(doctorFile.is_open()){
+//        doctorFile.seekp(0,ios::end);
+//        int sizefile=doctorFile.tellp();
+//        if(sizefile==0){
+//            doctorFile<<-1<<'|';
+//            headerdoctor = -1;
+//        }
+//    }
 
-    }
     int size = 3 + strlen(newDoctor.doctorID) + strlen(newDoctor.doctorName) +
                strlen(newDoctor.address);
 
 
     doctorFile.seekg(0,ios::beg);
-    char head[3];
-    doctorFile.get(head,3);
-
+//    char head[3];
+//    doctorFile.get(head,3);
+//    cout << head;
 
     pair<short, int> result = listdoc.getoffset(size);
     int diff = result.second - size;
 
-    cout<<headerdoctor<<"\n";
-    if (headerdoctor == -1 || diff < 0 ){
+    cout<< result.second<<"\n";
+    cout<< diff<<"\n";
+
+
+    if (headerdoctor == -1 && diff < 0 ){
+        cout << "hello\n";
 
         doctorFile <<  convert(size);
         doctorFile.seekp(0, ios::end);
         int offset = doctorFile.tellp();
-        //search
-        sort(doctorPrimaryIndex.begin(), doctorPrimaryIndex.end(), comparePrimaryIndexByID);
-        //primary
+//        //search
+//
+//        //primary
         fstream doctorPrimaryIndexFile("doctor_primary_index.txt", ios::out | ios::app | ios::binary);
         PrimaryIndex newIndex;
         strcpy(newIndex.ID, newDoctor.doctorID);
         newIndex.offset = offset;
         doctorPrimaryIndex.push_back(newIndex);
         doctorPrimaryIndexFile<<newDoctor.doctorID<<" "<<offset<<endl;
-        // Add to Secondary Index
-        auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
-                          [&](const SecondaryIndexName &s) { return strcmp(s.Name, newDoctor.doctorName) == 0; });
+        sort(doctorPrimaryIndex.begin(), doctorPrimaryIndex.end());
+
+//        // Add to Secondary Index
+        auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),[&](const SecondaryIndexName &s) { return strcmp(s.Name, newDoctor.doctorName) == 0; });
 
         if (it != doctorNameSecondaryIndex.end()) {
             it->IDs.push_back(newDoctor.doctorID);
@@ -890,41 +920,46 @@ void addDoctor() {
     }
     else {
 
-            string nextof = listdoc.nextoffset(result.first);
-                doctorFile.seekp(0, ios::beg);
-                doctorFile<<nextof;
+        string nextof = listdoc.nextoffset(result.first);
+        doctorFile.seekp(0, ios::beg);
+        doctorFile.seekg(0, ios::beg);
+        doctorFile<<nextof;
 
-             short offset = result.first ;
+        cout<<nextof<<" next offset\n";
+
+        short offset = result.first ;
+
+        cout<<offset<<"  offset\n";
+
+        doctorFile.seekp(offset-2, ios::beg);
+        doctorFile <<  convert(size);
+        doctorFile<< record;
 
 
-             doctorFile.seekp(result.first-2, ios::beg);
-             doctorFile <<  convert(size);
-             doctorFile<< record;
+        //primary
+        fstream doctorPrimaryIndexFile("doctor_primary_index.txt",  ios::app | ios::binary);
+        PrimaryIndex newIndex;
+        strcpy(newIndex.ID, newDoctor.doctorID);
+        newIndex.offset = offset;
+        doctorPrimaryIndex.push_back(newIndex);
+        doctorPrimaryIndexFile<<newDoctor.doctorID<<" "<<offset<<endl;
+        sort(doctorPrimaryIndex.begin(), doctorPrimaryIndex.end());
 
-            sort(doctorPrimaryIndex.begin(), doctorPrimaryIndex.end(), comparePrimaryIndexByID);
-            //primary
-            fstream doctorPrimaryIndexFile("doctor_primary_index.txt",  ios::app | ios::binary);
-            PrimaryIndex newIndex;
-            strcpy(newIndex.ID, newDoctor.doctorID);
-            newIndex.offset = offset;
-            doctorPrimaryIndex.push_back(newIndex);
-            doctorPrimaryIndexFile<<newDoctor.doctorID<<" "<<offset<<endl;
-            // Add to Secondary Index
-            auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),
-                              [&](const SecondaryIndexName &s) { return strcmp(s.Name, newDoctor.doctorName) == 0; });
+        // Add to Secondary Index
+        auto it = find_if(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(),[&](const SecondaryIndexName &s) { return strcmp(s.Name, newDoctor.doctorName) == 0; });
 
-            if (it != doctorNameSecondaryIndex.end()) {
-                it->IDs.push_back(newDoctor.doctorID);
-            } else {
-                SecondaryIndexName newSecondary;
-                strcpy(newSecondary.Name, newDoctor.doctorName);
-                newSecondary.IDs.push_back(newDoctor.doctorID);
-                doctorNameSecondaryIndex.push_back(newSecondary);
-            }
-            writeDoctorNameSecondaryIndex();
-            cout << "Doctor added successfully!" << "\n";
+        if (it != doctorNameSecondaryIndex.end()) {
+            it->IDs.push_back(newDoctor.doctorID);
+        } else {
+            SecondaryIndexName newSecondary;
+            strcpy(newSecondary.Name, newDoctor.doctorName);
+            newSecondary.IDs.push_back(newDoctor.doctorID);
+            doctorNameSecondaryIndex.push_back(newSecondary);
+        }
+        writeDoctorNameSecondaryIndex();
+        cout << "Doctor added successfully!" << "\n";
 
-            listdoc.deleteFromOffset(offset);
+        listdoc.deleteFromOffset(offset);
 
         fstream availfiledoc("availlistdoc.txt",ios::out | ios::in );
         string checkoff ;
@@ -935,9 +970,6 @@ void addDoctor() {
                 break;
             }
         }
-
-
-//        }
     }
 
 
@@ -1234,7 +1266,7 @@ void deleteAppointment(){
         }
     }
 
-cout<<"Deleted Appointment "<<"\n";
+    cout<<"Deleted Appointment "<<"\n";
 
 
 }
@@ -1260,7 +1292,7 @@ void deleteDoctor(){
     char sizerec[3];
     outfile.get(sizerec,3);
 
-
+cout<<offset<<"  offset delete\n";
     listdoc.insertAtEnd(offset, std::stoi(sizerec));
     fstream availfiledoc("availlistdoc.txt",ios::app | ios::in );
     availfiledoc<<offset<<" "<<sizerec<<"\n";
@@ -1272,6 +1304,8 @@ void deleteDoctor(){
     if (offset<10)outfile<<0;
     outfile<<offset;
 
+    headerdoctor=offset;
+
     fstream doctorPrimaryIndexFile("doctor_primary_index.txt", ios::in | ios::out);
     string check , off ;
     while (!doctorPrimaryIndexFile.eof()){
@@ -1282,6 +1316,10 @@ void deleteDoctor(){
         }
         doctorPrimaryIndexFile>>off;
     }
+//    string s = id;
+    auto it = std::find(doctorPrimaryIndex.begin(), doctorPrimaryIndex.end(), id);
+    if (it !=doctorPrimaryIndex.end())
+        doctorPrimaryIndex.erase(it);
 
     fstream doctorNameSecondaryIndexFile("doctor_name_secondary_index.txt", ios::in | ios::out);
     string check0 ;
@@ -1296,6 +1334,9 @@ void deleteDoctor(){
             break;
         }
     }
+    auto it0 = std::find(doctorNameSecondaryIndex.begin(), doctorNameSecondaryIndex.end(), id);
+    if (it0 != doctorNameSecondaryIndex.end())
+        doctorNameSecondaryIndex.erase(it0);
 
     cout<<"Deleted Doctor "<<"\n";
 
@@ -1554,4 +1595,5 @@ void processQuery(){
                 cout << "------------------------\n";
             }
         }
-    }}
+    }
+}
